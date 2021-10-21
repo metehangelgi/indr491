@@ -10,6 +10,12 @@ from math import sqrt
 
 
 def static_test(actual,forecast):
+    """
+    Static test function takes lists of actual and forecast values and returns
+    MAE, MAPE, MSE, and RMSE. It requires non-zero list of values for actual. 
+    Called static, since it is contrasted to deep learning testing schemes which
+    are dynamic in nature.
+    """
     AssertSameLen(actual, forecast)
     MAE = mean(abs(x - y) for x,y in zip(actual, forecast))
     MSE = mean((x - y)**2 for x,y in zip(actual, forecast))
