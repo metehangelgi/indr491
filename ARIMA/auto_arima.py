@@ -6,19 +6,18 @@ import matplotlib.pyplot as plt
 # Load/split your data
 y = pm.datasets.load_wineind()
 train, tests = train_test_split(y, train_size=150)
-print(y)
 
 
-
-def find_arima(train):
+#send me np.array (full data for better d calculation and train data)
+def find_arima(y,train):
 
     # estimate number of seasonal differences using a Canova-Hansen test
-    D = pm.arima.nsdiffs(train ,
+    D = pm.arima.nsdiffs(y ,
                          m=12,  # commonly requires knowledge of dataset
                          max_D=12)
     
     # estimate number of seasonal differences using a Canova-Hansen test
-    d = pm.arima.ndiffs(train ,
+    d = pm.arima.ndiffs(y ,
             max_d=12) 
     
     stepwise_fit = pm.auto_arima(train, start_p=1, start_q=1,
@@ -35,7 +34,7 @@ def find_arima(train):
     return stepwise_fit,forecasts
 
 
-stepwise_fit,forecasts = find_arima(train)
+stepwise_fit,forecasts = find_arima(y,train)
 # Visualize the forecasts (blue=train, green=forecasts)
 x = np.arange(y.shape[0])
 plt.plot(x[:150], train, c='blue')
