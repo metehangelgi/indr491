@@ -8,6 +8,7 @@ def randomData(datafile):
     new_dict = pickle.load(infile)
     #   print(type(new_dict))
     y = new_dict['product_id'].unique()
+    random.seed(491)
     random_ids = random.choices(y, k=20)
     infile.close()
     return random_ids
