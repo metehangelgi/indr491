@@ -4,7 +4,32 @@ import random
 import csv
 import time
 
-
+#static
+#attrubute = index value (for csv and read)
+product_id_no = 0
+date_no = 1
+sales_no = 2
+brand_id_no=3
+current_bu_group_name_no=4
+current_category_name_no=5
+price_no = 6
+basket_no = 7
+fav_no = 8
+visit_no = 9
+impression_no = 10
+quantity_no = 11
+quantity_demand_no = 12
+remove_from_fav_no = 13
+reviewCount_no = 14
+rating_no = 15 #None
+gender_no = 16 #None
+SIZE_NAME_no = 17 #None
+first_att_no = 18
+first_att_value_no = 19
+second_att_no = 20
+second_att_value_no = 21
+third_att_no = 22
+third_att_value_no = 23
 
 
 def readData(datafile):
@@ -47,6 +72,7 @@ datas={"salesData":[],
 keys=list(datas.keys())
 for i in range(len(data)):
     datas[keys[i]]=readData(data[i])
+
 
 
 dates = sorted(datas["salesData"]["order_date"].unique())
@@ -140,12 +166,12 @@ dates = sorted(datas["salesData"]["order_date"].unique())
 productIDs= datas["salesData"]["product_id"].unique()
 for productID in productIDs:
     priceAssigned=0
-    if iter==1000: # number of productID
+    ratingAssigned=0
+    if iter==50: # number of productID
         break
     print(iter)
     iter=iter+1
     startDateT = time.time()
-    rowArr=[productID]
 
     datasID = {"salesData": [],
                "basket": [],
@@ -164,6 +190,8 @@ for productID in productIDs:
     for key in keys:
         datasID[key] = datas[key][datas[key].product_id == productID]
     getproductDataT = time.time()
+
+    #print(datasID["fav"].sort_values('date').head(50))
     #print("getproductTime: ", getproductDataT - startDateT)
 
     if len(datasID["price"]) == 0:  # bu noktada bu tarihli productID discard edilebilir
@@ -171,6 +199,7 @@ for productID in productIDs:
         continue  # discard given productID
 
     for date in dates:
+
         rowArr = [productID]
         rowArr.append(date)
 
@@ -210,6 +239,8 @@ for productID in productIDs:
         #print("basketTime: ", basketT- salesT)
 
         #fav
+        #alongate etmeye gerek yok, fav sayısı 30-10-190-5-50 gibi veri gördüm.
+        #                   yani bi anda düşme sebebi yok ise, bu fav günlük data olabilir kümülatif yerine
         rowArr.append(generalZeroPadding(datasID, date, 'fav', 'fav'))
         favT = time.time()
         #print("favTime: ", favT- basketT)
@@ -233,6 +264,7 @@ for productID in productIDs:
         quantityT = time.time()
         #print("quantityTime: ", quantityT - impressionT)
 
+
         # quantity_demand
         rowArr.append(generalZeroPadding(datasID, date, 'demand', 'quantity_demand'))
         quantityDemandT = time.time()
@@ -243,20 +275,42 @@ for productID in productIDs:
         removeFromFavT = time.time()
         #print("removeFromFavTime: ", removeFromFavT - quantityDemandT)
 
-        #rating
 
         #review count
         rowArr.append(generalZeroPadding(datasID, date, 'rating', 'reviewCount'))  # attribute ismi dikkat!
 
-        # rating attribute zero padding değildi tam olarak o yüzden şimdilik ayrı tutuyorum.
-        if len(datasID["rating"])!=0 and date in datasID["rating"]['date'].tolist():
-            rowArr.append(datasID["rating"][datasID["rating"].date==date]["rating"].iloc[0])
+        # rating
+        # altakkini kullanınca daha hızlı ama o zero padding
+        """
+        if len(datasID["rating"]) == 0:
+            rowArr.append(None) # hiç rating yoksa ne vermeliyiz?
+        elif date in datasID["rating"]['date'].tolist():
+            rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
+            ratingAssigned = 1
+        elif ratingAssigned == 0:
+            currentPriceDates = datasID["rating"][datasID["rating"].date >= date]["date"]
+            # normalde buna gerek olmaması lazım - hata verdiği için bunu yazdım şimdilik
+            if len(currentPriceDates) == 0:
+                rowArr.append(None)
+            else:
+                currentPriceDate = min(currentPriceDates)
+                rowArr.append(datasID["rating"][datasID["rating"].date == currentPriceDate]["rating"].iloc[0])
+        else: #ratingAssigned == 1
+            currentPriceDate = max(datasID["rating"][datasID["rating"].date <= date]["date"])
+            rowArr.append(datasID["rating"][datasID["rating"].date == currentPriceDate]["rating"].iloc[0])
+        """
+
+        # zero padding olan rating
+        if len(datasID["rating"]) != 0 and date in datasID["rating"]['date'].tolist():
+            rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
+            ratingAssigned = 1
         else:
-            rowArr.append(None) #bu değişmeli! bir önceki rating kullanılabilir
+            rowArr.append(0) #bu değişmeli! bir önceki rating kullanılabilir
         ratingT = time.time()
         #print("ratingTime: ", ratingT - removeFromFavT)
 
         #gender
+
         # gender None Padding
         if len(datasID["gender"])!=0:
             rowArr.append(datasID["gender"]["gender"].iloc[0])
@@ -264,6 +318,7 @@ for productID in productIDs:
             rowArr.append(None)
         genderT = time.time()
         #print("genderTime: ", genderT - ratingT)
+
 
         #sizeAtt
         if len(datasID["sizeAtt"])!=0:
