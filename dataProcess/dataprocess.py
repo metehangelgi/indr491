@@ -39,7 +39,8 @@ datas={"salesData":[],
 keys=list(datas.keys())
 for i in range(len(data)):
     datas[keys[i]]=readData(data[i])
-
+prod=datas["sizeAtt"][["third_att","third_att_value"]]
+print(prod)
 #print(datas["salesData"]['order_date'])
 saleData=datas["salesData"]
 #products=saleData['product_id'].unique()
