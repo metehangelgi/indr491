@@ -131,60 +131,59 @@ def Process_ABC(productIDs, dates, abcType):
     datesDF['tmp'] = 1
     sales = pd.merge(sales, datesDF, on='tmp')
     sales = sales.drop(columns=['tmp'])
-    print(0)
     JoinDateProductSP = pd.merge(JoinDateProduct, sales, left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['sales'] = JoinDateProductSP['sales'].fillna(0)
     sales=0
-    print(1)
+    print(JoinDateProductSP)
     # price
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['price'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'created_date'], how='left')
     JoinDateProductSP = JoinDateProductSP.drop(columns=['created_date'])
     JoinDateProductSP['price'] = JoinDateProductSP['price'].fillna(method='ffill')  # forward alongation
     JoinDateProductSP['price'] = JoinDateProductSP['price'].fillna(method='bfill')  # back alongation
-    print(2)
+    print(JoinDateProductSP)
     # basket
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['basket'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['basket'] = JoinDateProductSP['basket'].fillna(0)
-    print(3)
+    print(JoinDateProductSP)
     # fav
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['fav'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['fav'] = JoinDateProductSP['fav'].fillna(0)
-    print(4)
+    print(JoinDateProductSP)
     # visit
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['visit'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['visit'] = JoinDateProductSP['visit'].fillna(0)
-    print(5)
+    print(JoinDateProductSP)
     # impression
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['impression'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['impression'] = JoinDateProductSP['impression'].fillna(0)
-    print(6)
+    print(JoinDateProductSP)
     # quantity
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['quantity'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['quantity'] = JoinDateProductSP['quantity'].fillna(0)
-    print(7)
+    print(JoinDateProductSP)
     # quantity_demand
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['demand'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['quantity_demand'] = JoinDateProductSP['quantity_demand'].fillna(0)
-    print(8)
+    print(JoinDateProductSP)
     # removeFromFav
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['removeFromFav'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['remove_from_fav'] = JoinDateProductSP['remove_from_fav'].fillna(0)
-    print(9)
+    print(JoinDateProductSP)
     # rating
     JoinDateProductSP = pd.merge(JoinDateProductSP, datas['rating'], left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     JoinDateProductSP['reviewCount'] = JoinDateProductSP['reviewCount'].fillna(0)
     JoinDateProductSP['rating'] = JoinDateProductSP['rating'].fillna(0)
-    print(10)
+    print(JoinDateProductSP)
     # gender
     #gender = pd.merge(datas['gender'], datesDF, how='cross')
     gender=datas['gender']
@@ -198,22 +197,26 @@ def Process_ABC(productIDs, dates, abcType):
     # JoinDateProductSP=JoinDateProductSP.drop(columns=['order_date'])
     # JoinDateProductSP['basket']=JoinDateProductSP['basket'].fillna(0)
     gender=0
-    print(11)
+    print(JoinDateProductSP)
     # sizeAtt
     # sizeAtt = pd.merge(datas['sizeAtt'], datesDF, how='cross')
     sizeAtt = datas['sizeAtt']
     sizeAtt['tmp'] = 1
     sizeAtt = pd.merge(sizeAtt, datesDF, on='tmp')
     sizeAtt = sizeAtt.drop(columns=['tmp'])
-    print(12)
+    print(JoinDateProductSP)
     JoinDateProductSP = pd.merge(JoinDateProductSP, sizeAtt, left_on=['product_id', 'date'],
                                  right_on=['product_id', 'date'], how='left')
     # JoinDateProductSP=JoinDateProductSP.drop(columns=['order_date'])
     # JoinDateProductSP['basket']=JoinDateProductSP['basket'].fillna(0)
     sizeAtt=0
-    print(13)
     print(JoinDateProductSP)
 
-#Process_ABC(productIDsA,dates,'A')
+    #write to csv
+    file_name=abcType+".csv"
+    JoinDateProductSP.to_csv(file_name, sep=',')
+
+# comment out all - to csv
+Process_ABC(productIDsA,dates,'A')
 #Process_ABC(productIDsB,dates,'B')
-Process_ABC(productIDsC,dates,'C')
+#Process_ABC(productIDsC,dates,'C')
