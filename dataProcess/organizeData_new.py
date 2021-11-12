@@ -213,8 +213,8 @@ def Process_ABC(productIDs, dates, abcType):
     print(JoinDateProductSP)
 
     #write to csv
-    file_name=abcType+".csv"
-    JoinDateProductSP.to_csv(file_name, sep=',')
+    file_name=abcType+'.csv'
+    JoinDateProductSP.to_csv(file_name, sep=',',header=True)
 
 # comment out all - to csv
 Process_ABC(productIDsA,dates,'A')
