@@ -3,6 +3,7 @@ import numpy as np
 import random
 import csv
 import time
+import pandas as pd
 
 #static
 #attrubute = index value (for csv and read)
@@ -163,17 +164,18 @@ def ABCTesting(datas):
     SalesSums = idSale.groupby(by="product_id", sort=True).sum()
     # print(PriceMeans)
     # print(SalesSums)
-
+    #JoinABC=pd.merge(SalesSums,PriceMeans,on='product_id',keep_column='left', how='left')
     JoinABC = SalesSums.merge(PriceMeans, on='product_id', how='left')
     JoinABC['price'] = JoinABC['price'].fillna(0)
     #print(JoinABC)
 
     JoinABC['ABCValue'] = JoinABC.apply(lambda row: label_ABCValue(row), axis=1)
-    JoinABCSorted = JoinABC.sort_values(by=['ABCValue'])
+    JoinABCSorted = JoinABC.sort_values(by=['ABCValue'],ascending=False)
     #print(JoinABC)
     #print(JoinABCSorted)
-    #print(len(JoinABCSorted))
-    return JoinABCSorted['product_id']
+
+    #print(JoinABCSorted.index)
+    return JoinABCSorted.index
 
 
 def generalZeroPadding(datasID,date,dataname,rowname):
