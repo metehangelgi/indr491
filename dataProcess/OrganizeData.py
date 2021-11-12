@@ -152,199 +152,233 @@ for productID in ids:
 
 #print(rules3Problems)
 """
+def label_ABCValue(row):
+    return row["price"]*row["sales"]
+
+def ABCTesting(datas):
+    sales = datas["salesData"].sort_values(by=['order_date'])
+    idPrice = datas['price'][["product_id", "price"]]
+    idSale = sales[["product_id", "sales"]]
+    PriceMeans = idPrice.groupby(by="product_id", sort=True).mean()
+    SalesSums = idSale.groupby(by="product_id", sort=True).sum()
+    # print(PriceMeans)
+    # print(SalesSums)
+
+    JoinABC = SalesSums.merge(PriceMeans, on='product_id', how='left')
+    JoinABC['price'] = JoinABC['price'].fillna(0)
+    #print(JoinABC)
+
+    JoinABC['ABCValue'] = JoinABC.apply(lambda row: label_ABCValue(row), axis=1)
+    JoinABCSorted = JoinABC.sort_values(by=['ABCValue'])
+    #print(JoinABC)
+    #print(JoinABCSorted)
+    #print(len(JoinABCSorted))
+    return JoinABCSorted['product_id']
+
+
 def generalZeroPadding(datasID,date,dataname,rowname):
     if len(datasID[dataname]) != 0 and (date in datasID[dataname]['date'].tolist()):
         return datasID[dataname][datasID[dataname].date == date][rowname].iloc[0]
     else:
         return 0
 
+def SaveCSV(productIDs,dates,groupName):
+    Overall = []
+    iter = 0
+    for productID in productIDs:
+        priceAssigned=0
+        ratingAssigned=0
+        if iter==len(productIDs): # number of productID
+            break
+        print(iter)
+        iter=iter+1
+        startDateT = time.time()
 
+        datasID = {"salesData": [],
+                   "basket": [],
+                   "fav": [],
+                   "gender": [],
+                   "impression": [],
+                   "price": [],
+                   "demand": [],
+                   "quantity": [],
+                   "rating": [],
+                   "removeFromFav": [],
+                   "sizeAtt": [],
+                   "visit": []
+                   }
+        keys = datas.keys()
+        for key in keys:
+            datasID[key] = datas[key][datas[key].product_id == productID]
+        getproductDataT = time.time()
 
-Overall = []
-iter=0
-dates = sorted(datas["salesData"]["order_date"].unique())
-productIDs= datas["salesData"]["product_id"].unique()
-for productID in productIDs:
-    priceAssigned=0
-    ratingAssigned=0
-    if iter==50: # number of productID
-        break
-    print(iter)
-    iter=iter+1
-    startDateT = time.time()
+        #print(datasID["fav"].sort_values('date').head(50))
+        #print("getproductTime: ", getproductDataT - startDateT)
 
-    datasID = {"salesData": [],
-               "basket": [],
-               "fav": [],
-               "gender": [],
-               "impression": [],
-               "price": [],
-               "demand": [],
-               "quantity": [],
-               "rating": [],
-               "removeFromFav": [],
-               "sizeAtt": [],
-               "visit": []
-               }
-    keys = datas.keys()
-    for key in keys:
-        datasID[key] = datas[key][datas[key].product_id == productID]
-    getproductDataT = time.time()
+        if len(datasID["price"]) == 0:  # bu noktada bu tarihli productID discard edilebilir
+            # gereksiz kontrol yerine en başta discard ettim.
+            continue  # discard given productID
 
-    #print(datasID["fav"].sort_values('date').head(50))
-    #print("getproductTime: ", getproductDataT - startDateT)
+        for date in dates:
 
-    if len(datasID["price"]) == 0:  # bu noktada bu tarihli productID discard edilebilir
-        # gereksiz kontrol yerine en başta discard ettim.
-        continue  # discard given productID
+            rowArr = [productID]
+            rowArr.append(date)
 
-    for date in dates:
-
-        rowArr = [productID]
-        rowArr.append(date)
-
-        #sales
-        if date in datasID["salesData"]['order_date'].tolist():
-            rowArr.append(datasID["salesData"][datasID["salesData"].order_date==date]['sales'].iloc[0])
-        else:
-            rowArr.append(0)
-        rowArr.append(datasID["salesData"]["brand_id"].iloc[0])
-        rowArr.append(datasID["salesData"]["current_bu_group_name"].iloc[0])
-        rowArr.append(datasID["salesData"]["current_category_name"].iloc[0])
-        salesT = time.time()
-        #print("SalesTime: ",  salesT- getproductDataT)
-
-        # price
-        if len(datasID["price"][datasID["price"].created_date == date]) != 0:
-            rowArr.append(datasID["price"][datasID["price"].created_date == date]["price"].iloc[0])
-            priceAssigned = 1
-        elif priceAssigned == 0:
-            currentPriceDates = datasID["price"][datasID["price"].created_date >= date]["created_date"]
-            # normalde buna gerek olmaması lazım - hata verdiği için bunu yazdım şimdilik
-            if len(currentPriceDates) == 0:
+            #sales
+            if date in datasID["salesData"]['order_date'].tolist():
+                rowArr.append(datasID["salesData"][datasID["salesData"].order_date==date]['sales'].iloc[0])
+            else:
                 rowArr.append(0)
-            else:
-                currentPriceDate = min(currentPriceDates)
+            rowArr.append(datasID["salesData"]["brand_id"].iloc[0])
+            rowArr.append(datasID["salesData"]["current_bu_group_name"].iloc[0])
+            rowArr.append(datasID["salesData"]["current_category_name"].iloc[0])
+            salesT = time.time()
+            #print("SalesTime: ",  salesT- getproductDataT)
+
+            # price
+            if len(datasID["price"][datasID["price"].created_date == date]) != 0:
+                rowArr.append(datasID["price"][datasID["price"].created_date == date]["price"].iloc[0])
+                priceAssigned = 1
+            elif priceAssigned == 0:
+                currentPriceDates = datasID["price"][datasID["price"].created_date >= date]["created_date"]
+                # normalde buna gerek olmaması lazım - hata verdiği için bunu yazdım şimdilik
+                if len(currentPriceDates) == 0:
+                    rowArr.append(0)
+                else:
+                    currentPriceDate = min(currentPriceDates)
+                    rowArr.append(datasID["price"][datasID["price"].created_date == currentPriceDate]["price"].iloc[0])
+            else: #priceAssigned == 1
+                currentPriceDate = max(datasID["price"][datasID["price"].created_date <= date]["created_date"])
                 rowArr.append(datasID["price"][datasID["price"].created_date == currentPriceDate]["price"].iloc[0])
-        else: #priceAssigned == 1
-            currentPriceDate = max(datasID["price"][datasID["price"].created_date <= date]["created_date"])
-            rowArr.append(datasID["price"][datasID["price"].created_date == currentPriceDate]["price"].iloc[0])
 
-        priceT = time.time()
-        #print("priceTime: ", priceT - salesT)
+            priceT = time.time()
+            #print("priceTime: ", priceT - salesT)
 
-        #basket
-        rowArr.append(generalZeroPadding(datasID,date,'basket','basket'))
-        basketT = time.time()
-        #print("basketTime: ", basketT- salesT)
+            #basket
+            rowArr.append(generalZeroPadding(datasID,date,'basket','basket'))
+            basketT = time.time()
+            #print("basketTime: ", basketT- salesT)
 
-        #fav
-        #alongate etmeye gerek yok, fav sayısı 30-10-190-5-50 gibi veri gördüm.
-        #                   yani bi anda düşme sebebi yok ise, bu fav günlük data olabilir kümülatif yerine
-        rowArr.append(generalZeroPadding(datasID, date, 'fav', 'fav'))
-        favT = time.time()
-        #print("favTime: ", favT- basketT)
+            #fav
+            #alongate etmeye gerek yok, fav sayısı 30-10-190-5-50 gibi veri gördüm.
+            #                   yani bi anda düşme sebebi yok ise, bu fav günlük data olabilir kümülatif yerine
+            rowArr.append(generalZeroPadding(datasID, date, 'fav', 'fav'))
+            favT = time.time()
+            #print("favTime: ", favT- basketT)
 
-        #visit
-        rowArr.append(generalZeroPadding(datasID, date, 'visit', 'visit'))
-        visitT = time.time()
-        #print("visitTime: ", visitT - favT)
+            #visit
+            rowArr.append(generalZeroPadding(datasID, date, 'visit', 'visit'))
+            visitT = time.time()
+            #print("visitTime: ", visitT - favT)
 
-        # impression
-        rowArr.append(generalZeroPadding(datasID, date, 'impression', 'impression'))
-        impressionT = time.time()
-        #print("impressionTime: ", impressionT - visitT)
+            # impression
+            rowArr.append(generalZeroPadding(datasID, date, 'impression', 'impression'))
+            impressionT = time.time()
+            #print("impressionTime: ", impressionT - visitT)
 
-        # quantity
-        #quantity zero padding değildi tam olarak o yüzden şimdilik ayrı tutuyorum.
-        if len(datasID["quantity"])!=0 and date in datasID["quantity"]['date'].tolist():
-            rowArr.append(datasID["quantity"][datasID["quantity"].date==date]["quantity"].iloc[0])
-        else:
-            rowArr.append(0) # bu 0 olmayabilir
-        quantityT = time.time()
-        #print("quantityTime: ", quantityT - impressionT)
-
-
-        # quantity_demand
-        rowArr.append(generalZeroPadding(datasID, date, 'demand', 'quantity_demand'))
-        quantityDemandT = time.time()
-        #print("quantityDemandTime: ", quantityDemandT - quantityT)
-
-        # removefromfav
-        rowArr.append(generalZeroPadding(datasID, date, 'removeFromFav', 'remove_from_fav')) # attribute ismi dikkat!
-        removeFromFavT = time.time()
-        #print("removeFromFavTime: ", removeFromFavT - quantityDemandT)
-
-
-        #review count
-        rowArr.append(generalZeroPadding(datasID, date, 'rating', 'reviewCount'))  # attribute ismi dikkat!
-
-        # rating
-        # altakkini kullanınca daha hızlı ama o zero padding
-        """
-        if len(datasID["rating"]) == 0:
-            rowArr.append(None) # hiç rating yoksa ne vermeliyiz?
-        elif date in datasID["rating"]['date'].tolist():
-            rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
-            ratingAssigned = 1
-        elif ratingAssigned == 0:
-            currentPriceDates = datasID["rating"][datasID["rating"].date >= date]["date"]
-            # normalde buna gerek olmaması lazım - hata verdiği için bunu yazdım şimdilik
-            if len(currentPriceDates) == 0:
-                rowArr.append(None)
+            # quantity
+            #quantity zero padding değildi tam olarak o yüzden şimdilik ayrı tutuyorum.
+            if len(datasID["quantity"])!=0 and date in datasID["quantity"]['date'].tolist():
+                rowArr.append(datasID["quantity"][datasID["quantity"].date==date]["quantity"].iloc[0])
             else:
-                currentPriceDate = min(currentPriceDates)
+                rowArr.append(0) # bu 0 olmayabilir
+            quantityT = time.time()
+            #print("quantityTime: ", quantityT - impressionT)
+
+
+            # quantity_demand
+            rowArr.append(generalZeroPadding(datasID, date, 'demand', 'quantity_demand'))
+            quantityDemandT = time.time()
+            #print("quantityDemandTime: ", quantityDemandT - quantityT)
+
+            # removefromfav
+            rowArr.append(generalZeroPadding(datasID, date, 'removeFromFav', 'remove_from_fav')) # attribute ismi dikkat!
+            removeFromFavT = time.time()
+            #print("removeFromFavTime: ", removeFromFavT - quantityDemandT)
+
+
+            #review count
+            rowArr.append(generalZeroPadding(datasID, date, 'rating', 'reviewCount'))  # attribute ismi dikkat!
+
+            # rating
+            # altakkini kullanınca daha hızlı ama o zero padding
+            """
+            if len(datasID["rating"]) == 0:
+                rowArr.append(None) # hiç rating yoksa ne vermeliyiz?
+            elif date in datasID["rating"]['date'].tolist():
+                rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
+                ratingAssigned = 1
+            elif ratingAssigned == 0:
+                currentPriceDates = datasID["rating"][datasID["rating"].date >= date]["date"]
+                # normalde buna gerek olmaması lazım - hata verdiği için bunu yazdım şimdilik
+                if len(currentPriceDates) == 0:
+                    rowArr.append(None)
+                else:
+                    currentPriceDate = min(currentPriceDates)
+                    rowArr.append(datasID["rating"][datasID["rating"].date == currentPriceDate]["rating"].iloc[0])
+            else: #ratingAssigned == 1
+                currentPriceDate = max(datasID["rating"][datasID["rating"].date <= date]["date"])
                 rowArr.append(datasID["rating"][datasID["rating"].date == currentPriceDate]["rating"].iloc[0])
-        else: #ratingAssigned == 1
-            currentPriceDate = max(datasID["rating"][datasID["rating"].date <= date]["date"])
-            rowArr.append(datasID["rating"][datasID["rating"].date == currentPriceDate]["rating"].iloc[0])
-        """
+            """
 
-        # zero padding olan rating
-        if len(datasID["rating"]) != 0 and date in datasID["rating"]['date'].tolist():
-            rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
-            ratingAssigned = 1
-        else:
-            rowArr.append(0) #bu değişmeli! bir önceki rating kullanılabilir
-        ratingT = time.time()
-        #print("ratingTime: ", ratingT - removeFromFavT)
+            # zero padding olan rating
+            if len(datasID["rating"]) != 0 and date in datasID["rating"]['date'].tolist():
+                rowArr.append(datasID["rating"][datasID["rating"].date == date]["rating"].iloc[0])
+                ratingAssigned = 1
+            else:
+                rowArr.append(0) #bu değişmeli! bir önceki rating kullanılabilir
+            ratingT = time.time()
+            #print("ratingTime: ", ratingT - removeFromFavT)
 
-        #gender
+            #gender
 
-        # gender None Padding
-        if len(datasID["gender"])!=0:
-            rowArr.append(datasID["gender"]["gender"].iloc[0])
-        else:
-            rowArr.append(None)
-        genderT = time.time()
-        #print("genderTime: ", genderT - ratingT)
+            # gender None Padding
+            if len(datasID["gender"])!=0:
+                rowArr.append(datasID["gender"]["gender"].iloc[0])
+            else:
+                rowArr.append(None)
+            genderT = time.time()
+            #print("genderTime: ", genderT - ratingT)
 
 
-        #sizeAtt
-        if len(datasID["sizeAtt"])!=0:
-            rowArr.append(datasID["sizeAtt"]["SIZE_NAME"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["first_att"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["first_att_value"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["second_att"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["second_att_value"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["third_att"].iloc[0])
-            rowArr.append(datasID["sizeAtt"]["third_att_value"].iloc[0])
-        else:
-            (rowArr.append(None) for i in range(7))
-        sizeAttT = time.time()
-        #print("sizeAttTime: ", sizeAttT - genderT)
+            #sizeAtt
+            if len(datasID["sizeAtt"])!=0:
+                rowArr.append(datasID["sizeAtt"]["SIZE_NAME"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["first_att"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["first_att_value"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["second_att"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["second_att_value"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["third_att"].iloc[0])
+                rowArr.append(datasID["sizeAtt"]["third_att_value"].iloc[0])
+            else:
+                (rowArr.append(None) for i in range(7))
+            sizeAttT = time.time()
+            #print("sizeAttTime: ", sizeAttT - genderT)
 
-        Overall.append(rowArr) # row ekleniyor
+            Overall.append(rowArr) # row ekleniyor
 
-    endDateT = time.time() # 1 product için geçen süre
-    print(endDateT-startDateT)
+        endDateT = time.time() # 1 product için geçen süre
+        print(endDateT-startDateT)
 
-with open("test.csv","w+") as my_csv:
-    csvWriter = csv.writer(my_csv,delimiter=',')
-    csvWriter.writerows(Overall)
+    filename=groupName+".csv"
+    with open(filename,"w+") as my_csv:
+        csvWriter = csv.writer(my_csv,delimiter=',')
+        csvWriter.writerows(Overall)
 
 
 
+
+dates = sorted(datas["salesData"]["order_date"].unique())
+productIDs= ABCTesting(datas)
+lenA=int(len(productIDs)*0.1)
+lenB=int(len(productIDs)*0.2)
+productIDsA=productIDs[0:lenA]
+productIDsB=productIDs[lenA:lenB+lenA]
+productIDsC=productIDs[lenB+lenA:]
+
+SaveCSV(productIDsA,dates,"A")
+SaveCSV(productIDsB,dates,"B")
+SaveCSV(productIDsC,dates,"C")
 
 
 
