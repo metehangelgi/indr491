@@ -7,13 +7,16 @@ library(glmnet)
 # Read data
 
 
-ydata <- read_csv("Dev/r491space/dynamic regression/data/A-LassoY.csv")
-features <- read_csv("Dev/r491space/dynamic regression/data/A-Lasso45.csv")
-xdata<- read_csv("Dev/r491space/dynamic regression/data/A-LassoX.csv") 
+ydata <- read_csv("A-LassoY.csv")
+features <- read_csv("A-Lasso45.csv")
+xdata<- read_csv("A-LassoX.csv") 
 
 
 
-id = 207940697241116
+id = 999786225237277
+#2014207854611875 iyi ürün from dynamic_regression
+#1011252778676425
+# 4570778245309593
 #4570778245309593
 prod_x <- filter(xdata, product_id == id)[, -1] ## product x data
 prod_y <- filter(ydata, product_id == id)[, -1] ## product y data
@@ -35,7 +38,7 @@ prod_x_test <- tail(prod_x, h)
 
 arima_fit <- auto.arima(prod_y_train)
 checkresiduals(arima_fit) 
-arima_fit %>% forecast(h=nrow(prod_y_test)) %>% autoplot()
+arima_fit %>% forecast(h=nrow(prod_y_test)) %>% autoplot(ylab = "Sales")
 arima_forecast <- arima_fit %>% forecast(h=nrow(prod_y_test))
 
 arima_erors <- accuracy(arima_forecast, prod_y_test$sales)
@@ -78,17 +81,17 @@ for (i in 0:10) {
   results <- rbind(results, temp)
 }
 
-plot(list.of.fits[["alpha0.9"]])
+plot(list.of.fits[["alpha0.2"]])
 
-elastic_coef <-  coef(list.of.fits[["alpha0.9"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
-lasso_coef <- coef(glmfit, s = 69.1712123)
+elastic_coef <-  coef(list.of.fits[["alpha0.2"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
+lasso_coef <- coef(glmfit, s = glmfit$lambda.1se)
 
 #Dyamic regression
 
 prod_feature <- lasso_coef[-1] ## list of elemnts to include
-regressors <- which(prod_feature!= 0) ## indices of non-zero elements
+#regressors <- which(prod_feature!= 0) ## indices of non-zero elements
 
-#regressors <- which(elastic_coef[-1]!= 0) # if elastic net is desired
+regressors <- which(elastic_coef[-1]!= 0) # if elastic net is desired
 
 dyano.fit <- auto.arima(prod_y[,"sales"],
                   xreg=data.matrix(prod_x[,regressors], rownames.force = NA))
@@ -102,7 +105,7 @@ checkresiduals(dyano.fit)
 
 
 
-dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40) %>% autoplot()
+dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40) %>% autoplot(ylab = "Sales")
 dyno.forecast <- dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
 
 dyno.erors <- accuracy(dyno.forecast, prod_y_test$sales)
@@ -121,7 +124,7 @@ holt.errors <- accuracy(holt.forecast, prod_y_test$sales)
 # ets
 
 ets.forecast <- ets(as.vector(prod_y_train$sales))
-ets.errors <- accuracy(ets.forecast, x = as.matrix(prod_y_test$sales))
+ets.errors <- accuracy(ets.forecast, as.matrix(prod_y_test$sales))
 
 summary(ets.forecast)
 
