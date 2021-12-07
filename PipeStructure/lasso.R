@@ -77,6 +77,9 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       lassoProd<-integer(ncol(xdata)) # bunu commentle üsttekini aç
 
       for (i in 1:ncol(xdata)){
+         if (lassoProd[i]!=0){
+            lassoProd[i]<-1
+         }
          mat[[prodIDIndex,i]]<-lassoProd[i]
       }
 
