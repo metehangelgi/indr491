@@ -17,8 +17,8 @@ def preprocess(numberofSamples,toCSVFile):
     productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples)
     #datas=datas.iloc[datas['product_id'].isin(datas)]
     processedData=doProcess(datas,productIDs,dates)
-    saveCSV(toCSVFile,processedData) #can be commented out
-    return DatabaseManage.readData(toCSVFile)
+    saveCSV(toCSVFile+str(numberofSamples),processedData) #can be commented out
+    return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
 def doProcess(datas,productIDs,dates):
@@ -138,9 +138,9 @@ def doProcess(datas,productIDs,dates):
     return Overall
 
 def saveCSV(fName,Overall):
-    folder="processedData"
+    folder="preProcess"
     DatabaseManage.createFolder(folder)
-    filename="processedData/"+fName+".csv"
+    filename="preProcess/"+fName+".csv"
     with open(filename,"w+") as my_csv:
         csvWriter = csv.writer(my_csv,delimiter=',')
         csvWriter.writerows(Overall)

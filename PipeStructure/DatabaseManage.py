@@ -8,8 +8,8 @@ def readInitialData(datafile):
     new_dict = pickle.load(infile)
     return new_dict
 
-def readData(datafile):
-    return pd.read_csv('./processedData/'+datafile+".csv")
+def readData(path,datafile):
+    return pd.read_csv('./'+path+'/'+datafile+".csv")
 
 def initializing():
     salesData = "TY_Koc_Sales.pkl"
