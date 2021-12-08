@@ -19,7 +19,7 @@ import re
 
 
 
-def lagData(data,max_lag=7):
+def lagData(data,dateData,max_lag=7):
     prodDatas = []
     prodDataSales=[]
     prodIDCols=[]
@@ -43,10 +43,8 @@ def lagData(data,max_lag=7):
             genderCols = list(filter(r.match, prodData.columns))  # Read Note below
             r = re.compile("size.*")
             sizeCols = list(filter(r.match, prodData.columns))  # Read Note below
-            excludeList=['product_id', "brand_id", "gender", "SIZE_NAME", 'sales', 'price', 'haftasonu', 'kampanya',
-                          'resmitatil', 'ozelGun', 'Ozel3',
-                          'Ozel5']
-            excludeList=excludeList+brandCols+genderCols+sizeCols
+            excludeList=['product_id', "brand_id", "gender", "SIZE_NAME", 'sales', 'price', 'haftasonu']
+            excludeList=excludeList+list(dateData.columns)+brandCols+genderCols+sizeCols
             if column in excludeList: continue
             for lag in range(1, max_lag + 1):
                 name = f"{column}({lag})"
@@ -90,7 +88,7 @@ def featureCreation(datas,numberOfSample, toCSVFile):
     for SIZENAMECol in SIZENAMECols:
         data['size_' + str(SIZENAMECol)] = 0
         data.loc[data.SIZE_NAME == SIZENAMECol, 'size_' + str(SIZENAMECol)] = 1
-    laggedData,prodDataSales,prodIDCols=lagData(data)
+    laggedData,prodDataSales,prodIDCols=lagData(data,dateData)
     saveCSV(toCSVFile+str(numberOfSample),laggedData)
     saveCSV(toCSVFile + str(numberOfSample)+'Y', prodDataSales)
     saveCSV(toCSVFile + str(numberOfSample) + 'PID', prodIDCols)
