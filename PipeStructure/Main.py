@@ -15,7 +15,7 @@ toCSVFile="new"
 def main():
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess')
     laggedData = HandleProcess(data,numberOfSample, toCSVFile,'featureCreation')
-    HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection') # her seferinde çalışmamalı handle edeceğim
+    HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection')
     categorizedData=Categorization.dataCategorization(data,"SBC",numberOfSample) # handle edeceğim şimdilik test için burada
     print("bitti")
 
