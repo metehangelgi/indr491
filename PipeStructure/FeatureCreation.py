@@ -14,6 +14,7 @@ from sklearn import decomposition, datasets
 from sklearn.linear_model import LassoCV
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
+import re
 
 
 
@@ -36,9 +37,17 @@ def lagData(data,max_lag=7):
         # Productlasso = {}
         # productLasso=[]
         for column in prodData.columns:
-            if column in ['product_id', "brand_id", "gender", "SIZE_NAME", 'sales', 'price', 'haftasonu', 'kampanya',
+            r = re.compile("brand_ID.*")
+            brandCols = list(filter(r.match, prodData.columns))  # Read Note below
+            r = re.compile("gender.*")
+            genderCols = list(filter(r.match, prodData.columns))  # Read Note below
+            r = re.compile("size.*")
+            sizeCols = list(filter(r.match, prodData.columns))  # Read Note below
+            excludeList=['product_id', "brand_id", "gender", "SIZE_NAME", 'sales', 'price', 'haftasonu', 'kampanya',
                           'resmitatil', 'ozelGun', 'Ozel3',
-                          'Ozel5']: continue
+                          'Ozel5']
+            excludeList=excludeList+brandCols+genderCols+sizeCols
+            if column in excludeList: continue
             for lag in range(1, max_lag + 1):
                 name = f"{column}({lag})"
                 prodData[name] = prodData[column].shift(lag).copy()

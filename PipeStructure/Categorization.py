@@ -1,11 +1,18 @@
 import math
+import subprocess
 
-def dataCategorization(data,categorization):
-    if "ABC" in categorization:
+import DatabaseManage
+
+
+def dataCategorization(data,categorization,numberOfSample):
+    folder = "dataCategorization"
+    DatabaseManage.createFolder(folder)
+
+    if categorization =="ABC" :
         return abc(data)
-    if "SBC" in categorization:
-        return sbc(data)
-    if "Slow-Fast" in categorization:
+    if categorization == "SBC":
+        return sbc(numberOfSample)
+    if categorization=="Slow-Fast":
         return slow_fast_moving(data)
 
 # Returns the product ids for matching category combination
@@ -40,8 +47,10 @@ def abc(data):
     ABCoutput={'A':productIDsA,'B':productIDsB,'C':productIDsC}
     return ABCoutput
 
-def sbc(data):
-    pass
+def sbc(numberOfSample):
+    # subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
+    subprocess.call(["/usr/local/bin/Rscript", "--vanilla", "sbc.r", str(numberOfSample)])
+    return None #sonra bakacağım
 
 def slow_fast_moving(data):
     pass

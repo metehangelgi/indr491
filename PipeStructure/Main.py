@@ -10,14 +10,14 @@ import FeatureCreation
 import FeatureSelection2
 
 
-numberOfSample=10
+numberOfSample=3
 toCSVFile="new"
 def main():
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess')
     laggedData = HandleProcess(data,numberOfSample, toCSVFile,'featureCreation')
-    HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection')
-    #FeatureProcess.featureCreationSelection(data)
-    categorizedData=Categorization.dataCategorization(data,"ABC")
+    HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection') # her seferinde çalışmamalı handle edeceğim
+    categorizedData=Categorization.dataCategorization(data,"SBC",numberOfSample) # handle edeceğim şimdilik test için burada
+    print("bitti")
 
 def HandleProcess(data,numberOfSample,toCSVFile,process):
     if os.path.isfile('./'+process+'/'+toCSVFile+str(numberOfSample)+".csv"):
@@ -28,7 +28,7 @@ def HandleProcess(data,numberOfSample,toCSVFile,process):
         elif process=='featureCreation':
             data2 = FeatureCreation.featureCreation(data, numberOfSample, toCSVFile)
         elif process=='featureSelection':
-            data2 = FeatureSelection2.FeatureSelection()
+            data2 = FeatureSelection2.FeatureSelection(numberOfSample)
     return data2
 
 def handleInitialData(numberOfSample,toCSVFile):

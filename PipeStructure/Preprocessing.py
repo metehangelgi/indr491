@@ -4,6 +4,7 @@ import pandas as pd
 import Sample
 import DatabaseManage
 import os
+import math
 
 def generalZeroPadding(datasID,date,dataname,rowname):
     if len(datasID[dataname]) != 0 and (date in datasID[dataname]['date'].tolist()):
@@ -14,23 +15,23 @@ def generalZeroPadding(datasID,date,dataname,rowname):
 def preprocess(numberofSamples,toCSVFile):
     datas=DatabaseManage.initializing()
     dates = sorted(datas["salesData"]["order_date"].unique())
-    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples)
+    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples+math.floor(numberofSamples%2))
     #datas=datas.iloc[datas['product_id'].isin(datas)]
-    processedData=doProcess(datas,productIDs,dates)
+    processedData=doProcess(datas,productIDs,dates,numberofSamples)
     saveCSV(toCSVFile+str(numberofSamples),processedData) #can be commented out
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
-def doProcess(datas,productIDs,dates):
+def doProcess(datas,productIDs,dates,numberofSamples):
     Overall = []
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
-    iter = 0
+    iter = 0 # to make sure we have enough data even if no price assigned products
     for productID in productIDs:
         priceAssigned=0
-        if iter==len(productIDs): # number of productID
+
+        if iter==numberofSamples: # number of productID
             break
-        #print(iter)
         iter=iter+1
 
         datasID = {"salesData": [],
@@ -135,6 +136,7 @@ def doProcess(datas,productIDs,dates):
                 (rowArr.append(None) for i in range(7))
 
             Overall.append(rowArr) # row
+    print(len(Overall))
     return Overall
 
 def saveCSV(fName,Overall):

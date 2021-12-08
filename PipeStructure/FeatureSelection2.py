@@ -15,8 +15,8 @@ from sklearn.cluster import KMeans
 import subprocess
 
 
-def FeatureSelection():
+def FeatureSelection(numberOfSample):
     folder = "featureSelection"
     DatabaseManage.createFolder(folder)
     #subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
-    subprocess.call(["/usr/local/bin/Rscript", "--vanilla", "lasso.r"])
+    subprocess.call(["/usr/local/bin/Rscript", "--vanilla", "lasso.r",str(numberOfSample)])
