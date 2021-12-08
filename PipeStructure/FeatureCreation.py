@@ -101,8 +101,4 @@ def saveCSV(fName,Overall):
     DatabaseManage.createFolder(folder)
     filename="featureCreation/"+fName+".csv"
     Overall.to_csv(filename,index=False)
-    """
-    with open(filename,"w+") as my_csv:
-        csvWriter = csv.writer(my_csv,delimiter=',')
-        csvWriter.writerows(Overall)
-    """
+

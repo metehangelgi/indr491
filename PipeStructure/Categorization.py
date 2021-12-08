@@ -2,18 +2,19 @@ import math
 import subprocess
 
 import DatabaseManage
+import pandas as pd
 
 
-def dataCategorization(data,categorization,numberOfSample):
+def dataCategorization(data,toCSVFile,categorization,numberOfSample):
     folder = "dataCategorization"
     DatabaseManage.createFolder(folder)
 
     if categorization =="ABC" :
-        return abc(data)
+        return abc(data,toCSVFile,numberOfSample)
     if categorization == "SBC":
         return sbc(numberOfSample)
     if categorization=="Slow-Fast":
-        return slow_fast_moving(data)
+        return slow_fast_moving(data,toCSVFile,numberOfSample)
 
 # Returns the product ids for matching category combination
 # e.g. filter_for_categoty("ABC"="A", "SPC"="intermittent")
@@ -25,7 +26,7 @@ def filter_for_category(categories, size):
 def label_ABCValue(row):
     return row["price"]*row["sales"]
 
-def abc(data):
+def abc(data,toCSVFile,numberOfSample):
     idSale=data[["product_id", "sales"]]
     idPrice=data[["product_id", "price"]]
     PriceMeans = idPrice.groupby(by="product_id", sort=True).mean()
@@ -45,7 +46,9 @@ def abc(data):
     productIDsB=productIDs[lenA:lenB+lenA]
     productIDsC=productIDs[lenB+lenA:]
     ABCoutput={'A':productIDsA,'B':productIDsB,'C':productIDsC}
-    return ABCoutput
+    ABCoutputDF=pd.DataFrame.from_dict(data)
+    saveCSV(toCSVFile+str(numberOfSample)+"ABC",ABCoutputDF)
+    return ABCoutputDF
 
 def sbc(numberOfSample):
     # subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
@@ -54,3 +57,9 @@ def sbc(numberOfSample):
 
 def slow_fast_moving(data):
     pass
+
+def saveCSV(fName,Overall):
+    folder="dataCategorization"
+    DatabaseManage.createFolder(folder)
+    filename="dataCategorization/"+fName+".csv"
+    Overall.to_csv(filename,index=False)

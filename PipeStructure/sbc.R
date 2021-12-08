@@ -34,7 +34,7 @@ ts_categorization <- data.frame(id = row.names(t(new_df)), cv2 = ts_cate_obj$cv2
 
 print(ts_categorization)
 
-output <- c("dataCategorization/new", numofSample,".csv")
+output <- c("dataCategorization/new", numofSample,"SBC",".csv")
 output2 <- paste(output, collapse="")
 write.csv(ts_categorization,output2, row.names = FALSE) # parametric yapamadım bakmak gerek
 

@@ -19,7 +19,13 @@ def main():
     HandleProcess(data,numberOfSample,toCSVFile,'dataCategorization')
 
 def HandleProcess(data,numberOfSample,toCSVFile,process):
-    if os.path.isfile('./'+process+'/'+toCSVFile+str(numberOfSample)+".csv"):
+    if process=='dataCategorization':
+        categorizationType="SBC" # farklı şekilde handle edeceğim
+        if os.path.isfile('./' + process + '/' + toCSVFile +categorizationType+ str(numberOfSample) + ".csv"):
+            data2 = DatabaseManage.readData(process, toCSVFile +categorizationType+ str(numberOfSample))
+        else:
+            data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample)  # return null
+    elif os.path.isfile('./'+process+'/'+toCSVFile+str(numberOfSample)+".csv"):
         data2 = DatabaseManage.readData(process,toCSVFile+str(numberOfSample))
     else:
         if process=='preProcess':
@@ -28,9 +34,7 @@ def HandleProcess(data,numberOfSample,toCSVFile,process):
             data2 = FeatureCreation.featureCreation(data, numberOfSample, toCSVFile)
         elif process=='featureSelection':
             data2 = FeatureSelection2.FeatureSelection(numberOfSample) #return null
-        elif process=='dataCategorization':
-            # farklı categorization ları handle edeceğim
-            data2 = Categorization.dataCategorization(data, "SBC", numberOfSample) #return null
+
     return data2
 
 

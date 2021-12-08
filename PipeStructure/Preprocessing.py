@@ -18,7 +18,7 @@ def preprocess(numberofSamples,toCSVFile):
     productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples+math.floor(numberofSamples%2))
     #datas=datas.iloc[datas['product_id'].isin(datas)]
     processedData=doProcess(datas,productIDs,dates,numberofSamples)
-    saveCSV(toCSVFile+str(numberofSamples),processedData) #can be commented out
+    saveCSV(toCSVFile+str(numberofSamples),processedData)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
