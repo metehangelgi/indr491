@@ -89,8 +89,9 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
    }
 
    frame <- as.data.frame(mat,columns=colnames(xdata)[-1])
+   frame["product_id"]=ux
    colnames(frame) <- colnames(xdata)[-1]
-   rownames(frame) <- ux
+   #rownames(frame) <- ux
    #drop <- c("product_id")
    #frame = frame[,!(names(frame) %in% drop)]
    return(frame)
@@ -113,7 +114,7 @@ prodIDs=xdata[['product_id']]
 LassoOutput=FeatureSelection(xdata,ydata,prodIDs)
 output <- c("featureSelection/new", numofSample,".csv")
 output2 <- paste(output, collapse="")
-write.csv(LassoOutput,output2, row.names = TRUE) # parametric yapamadım bakmak gerek
+write.csv(LassoOutput,output2, row.names = FALSE) # parametric yapamadım bakmak gerek
 
 
 

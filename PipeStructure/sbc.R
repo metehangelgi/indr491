@@ -7,6 +7,7 @@ library(tsintermittent)
 library(readr)
 library(reshape2)
 library(ggplot2)
+library("dplyr")
 
 args = commandArgs(trailingOnly=TRUE)
 numofSample=as.character(args[1])
@@ -23,15 +24,19 @@ new_df <- subset(dcast(ydata, dates ~ product_id, value.var="sales"), select = -
 #SBC categorization
 ts_cate_obj <- idclass(new_df, type = "SBC", outplot = "none")
 
-print("hata öncesi")
+
 ts_categorization <- data.frame(id = row.names(t(new_df)), cv2 = ts_cate_obj$cv2,
                                  p = ts_cate_obj$p) %>%
   mutate(demand_cate = case_when(p < 1.32 & cv2 < 0.49 ~ "Smooth",
                                  p >= 1.32 & cv2 < 0.49 ~ "Intermittent",
                                  p < 1.32 & cv2 >= 0.49 ~ "Erratic",
                                  p >= 1.32 & cv2 >= 0.49 ~ "Lumpy"))
-print("hata sonrası,mutate fonksiyonu hatası veriyor")
+
 print(ts_categorization)
+
+output <- c("dataCategorization/new", numofSample,".csv")
+output2 <- paste(output, collapse="")
+write.csv(ts_categorization,output2, row.names = FALSE) # parametric yapamadım bakmak gerek
 
 plot <- function() {
   p <- ggplot(ts_categorization, aes(x = p, y = cv2, color= 'red'), xlim=c(0.7,2), ylim=c(0,6)) +
