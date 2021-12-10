@@ -15,24 +15,25 @@ def generalZeroPadding(datasID,date,dataname,rowname):
 def preprocess(numberofSamples,toCSVFile):
     datas=DatabaseManage.initializing()
     dates = sorted(datas["salesData"]["order_date"].unique())
-    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples+math.floor(numberofSamples%2))
+    # numberofSamples*5 to make sure there will be enough sample after deleting no price changes
+    #productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*5)
     #datas=datas.iloc[datas['product_id'].isin(datas)]
-    processedData=doProcess(datas,productIDs,dates,numberofSamples)
+    processedData=doProcess(datas,dates,numberofSamples)
     saveCSV(toCSVFile+str(numberofSamples),processedData)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
-def doProcess(datas,productIDs,dates,numberofSamples):
+def doProcess(datas,dates,numberofSamples):
     Overall = []
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
     iter = 0 # to make sure we have enough data even if no price assigned products
-    for productID in productIDs:
+    while True:
         priceAssigned=0
-
         if iter==numberofSamples: # number of productID
             break
-        iter=iter+1
+        productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
+
 
         datasID = {"salesData": [],
                    "basket": [],
@@ -54,6 +55,8 @@ def doProcess(datas,productIDs,dates,numberofSamples):
 
         if len(datasID["price"]) == 0: # if has no price value
             continue  # discard given productID
+
+        iter = iter + 1
 
         for date in dates:
             rowArr = [productID]

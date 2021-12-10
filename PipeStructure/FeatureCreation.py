@@ -36,24 +36,28 @@ def lagData(data,dateData,max_lag=7):
         prodData = data[207 * j:207 * (j + 1)]
         # Productlasso = {}
         # productLasso=[]
+        r = re.compile("brand_ID.*")
+        brandCols = list(filter(r.match, prodData.columns))  # Read Note below
+        r = re.compile("gender.*")
+        genderCols = list(filter(r.match, prodData.columns))  # Read Note below
+        r = re.compile("size.*")
+        sizeCols = list(filter(r.match, prodData.columns))  # Read Note below
+        excludeList = ['product_id', 'sales', 'price', 'Cumartesi', 'Pazar']
+        # excludeList=excludeList+list(dateData.columns)+brandCols+genderCols+sizeCols
+        excludeList = excludeList + brandCols + genderCols + sizeCols
+
         for column in prodData.columns:
-            r = re.compile("brand_ID.*")
-            brandCols = list(filter(r.match, prodData.columns))  # Read Note below
-            r = re.compile("gender.*")
-            genderCols = list(filter(r.match, prodData.columns))  # Read Note below
-            r = re.compile("size.*")
-            sizeCols = list(filter(r.match, prodData.columns))  # Read Note below
-            excludeList=['product_id', "brand_id", "gender", "SIZE_NAME", 'sales', 'price', 'haftasonu']
-            excludeList=excludeList+list(dateData.columns)+brandCols+genderCols+sizeCols
-            if column in excludeList: continue
+            if column in excludeList:
+                continue
             for lag in range(1, max_lag + 1):
                 name = f"{column}({lag})"
                 prodData[name] = prodData[column].shift(lag).copy()
         prodData = prodData.iloc[max_lag:, :]
         prodDataSale=prodData[['product_id','sales']]
         prodIDCol=prodData[['product_id']]
-        prodData.drop(["sales","gender","SIZE_NAME","brand_id","basket", "fav", "visit", "impression", "quantity", "demand", "removeFromFav", "reviewCount", "rating"],
-               axis=1, inplace=True)
+        dateColumns=list(dateData.columns[2:])
+        dropCols=dateColumns+["sales","basket", "fav", "visit", "impression", "quantity", "demand", "removeFromFav", "reviewCount", "rating"]
+        prodData.drop(dropCols,axis=1, inplace=True)
         if boolTest:
             prodDatas = prodData
             prodDataSales = prodDataSale
@@ -88,6 +92,7 @@ def featureCreation(datas,numberOfSample, toCSVFile):
     for SIZENAMECol in SIZENAMECols:
         data['size_' + str(SIZENAMECol)] = 0
         data.loc[data.SIZE_NAME == SIZENAMECol, 'size_' + str(SIZENAMECol)] = 1
+    data.drop(["gender", "SIZE_NAME", "brand_id"],axis=1, inplace=True)
     laggedData,prodDataSales,prodIDCols=lagData(data,dateData)
     saveCSV(toCSVFile+str(numberOfSample),laggedData)
     saveCSV(toCSVFile + str(numberOfSample)+'Y', prodDataSales)

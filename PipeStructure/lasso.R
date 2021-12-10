@@ -52,15 +52,16 @@ Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
    #print(elastic_coef) # elasticte bişiler var
 
    # Bana bir ürün için LassoColumnValues olan bi vector döndür
-   numCols <- ncol(prod_x_train)
-   LassoColumnValues <- rep(NA, numCols) # NA yerine lasso feature değerleri gibi
-
-   return(lasso_coef)
+   #numCols <- ncol(prod_x_train)
+   #LassoColumnValues <- rep(NA, numCols) # NA yerine lasso feature değerleri gibi
+   newList <- list("Lasso" = lasso_coef, "Elastic" = elastic_coef)
+   return(newList)
 }
 FeatureSelection <- function(xdata,ydata,prodIDs) {
    #mat<-matrix(list(), nrow=length(prodIDs), ncol=ncol(xdata))
    ux <- unique(prodIDs)
-   mat <- matrix(0, length(ux), ncol(xdata))
+   mat <- matrix(0, length(ux), ncol(xdata)-1)
+   matElastic <- matrix(0, length(ux), ncol(xdata)-1)
    for (prodIDIndex in 1:length(ux))
    {
 
@@ -76,25 +77,43 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       h <- nrow(prod_x) - nrow(prod_x_train)
       prod_x_test <- tail(prod_x, h)
       #Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
-      lassoProd<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
-      #lassoProd<-integer(ncol(xdata)) # bunu commentle üsttekini aç
+      newListOutputs<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
 
-      for (i in 1:ncol(xdata)){
+      lassoProd <-newListOutputs$Lasso
+      lassoProd <-lassoProd[-1] #no idea first column?
+      elasticProd<-newListOutputs$Elastic
+      elasticProd<-elasticProd[-1] #no idea first column?
+
+      for (i in 1:(ncol(xdata)-1)){
          if (lassoProd[i]!=0){
             lassoProd[i]<-1
          }
          mat[[prodIDIndex,i]]<-lassoProd[i]
       }
 
+      for (i in 1:(ncol(xdata)-1)){
+         if (elasticProd[i]!=0){
+            elasticProd[i]<-1
+         }
+         matElastic[[prodIDIndex,i]]<-elasticProd[i]
+      }
+
    }
 
-   frame <- as.data.frame(mat,columns=colnames(xdata)[-1])
-   frame["product_id"]=ux
+   frame <- as.data.frame(mat)
    colnames(frame) <- colnames(xdata)[-1]
+   frame["product_id"]=ux
+   frame2 <- frame %>% select("product_id", everything())
+
+   frameElastic <- as.data.frame(matElastic)
+   colnames(frameElastic) <- colnames(xdata)[-1]
+   frameElastic["product_id"]=ux
+   frameElastic2 <- frameElastic %>% select("product_id", everything())
    #rownames(frame) <- ux
    #drop <- c("product_id")
    #frame = frame[,!(names(frame) %in% drop)]
-   return(frame)
+   newList <- list("Lasso" = frame2, "Elastic" = frameElastic2)
+   return(newList)
 }
 
 # Read data
@@ -105,16 +124,29 @@ inputy <- c("featureCreation/new", numofSample,"Y.csv")
 inputy2 <- paste(inputy, collapse="")
 inputx <- c("featureCreation/new", numofSample,".csv")
 inputx2 <- paste(inputx, collapse="")
-ydata <- read_csv(inputy2) #parametre atmak lazım içeri
-xdata <- read_csv(inputx2) #parametre atmak lazım içeri
+ydata <- read_csv(inputy2)
+xdata <- read_csv(inputx2)
 #pid <- read_csv("featureCreation/new10PID.csv")
 #xdata <- data.frame(xdataPre)
 #ydata <- data.frame(ydataPre)
+
+# exclude brandid,gender,size
+patterns <- c("brand_ID_.*","size_.*","gender_.*")
+any_matching = Reduce(`|`, lapply(patterns, grepl, colnames(xdata)))
+resultX = colnames(xdata)[! any_matching]
+drop <- resultX
+xdata=xdata[,(names(xdata) %in% drop)]
 prodIDs=xdata[['product_id']]
-LassoOutput=FeatureSelection(xdata,ydata,prodIDs)
+SelectionOutputs=FeatureSelection(xdata,ydata,prodIDs)
+LassoOutput<-SelectionOutputs$Lasso
+ElasticOutput<-SelectionOutputs$Elastic
 output <- c("featureSelection/new", numofSample,".csv")
+output0 <- c("featureSelection/newElastic", numofSample,".csv")
 output2 <- paste(output, collapse="")
-write.csv(LassoOutput,output2, row.names = FALSE) # parametric yapamadım bakmak gerek
+output02 <- paste(output0, collapse="")
+write.csv(LassoOutput,output2, row.names = FALSE)
+write.csv(ElasticOutput,output02, row.names = FALSE)
+
 
 
 

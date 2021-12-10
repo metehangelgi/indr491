@@ -39,21 +39,30 @@ def abc(data,toCSVFile,numberOfSample):
     JoinABC['ABCValue'] = JoinABC.apply(lambda row: label_ABCValue(row), axis=1)
     JoinABCSorted = JoinABC.sort_values(by=['ABCValue'],ascending=False)
 
-    productIDs=JoinABCSorted.index
+    productIDs=list(JoinABCSorted.index)
     lenA = math.ceil(len(productIDs) * 0.1) #%10
     lenB = math.ceil(len(productIDs) * 0.2) #%20
     productIDsA =productIDs[0:lenA]
     productIDsB=productIDs[lenA:lenB+lenA]
     productIDsC=productIDs[lenB+lenA:]
-    ABCoutput={'A':productIDsA,'B':productIDsB,'C':productIDsC}
-    ABCoutputDF=pd.DataFrame.from_dict(data)
+
+    ABCList=[]
+    for PID in productIDs:
+        if PID in productIDsA:
+            ABCList.append('A')
+        elif PID in productIDsB:
+            ABCList.append('B')
+        else:
+            ABCList.append('C')
+    ABCoutput = {'product_id': productIDs, 'ABCGroup': ABCList}
+    ABCoutputDF=pd.DataFrame.from_dict(ABCoutput)
     saveCSV(toCSVFile+str(numberOfSample)+"ABC",ABCoutputDF)
     return ABCoutputDF
 
 def sbc(numberOfSample):
     # subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
     subprocess.call(["/usr/local/bin/Rscript", "--vanilla", "sbc.r", str(numberOfSample)])
-    return None #sonra bakacağım
+    return None # R codes does not return, it saves to the csv
 
 def slow_fast_moving(data):
     pass
