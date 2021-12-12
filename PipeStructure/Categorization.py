@@ -5,14 +5,14 @@ import DatabaseManage
 import pandas as pd
 
 
-def dataCategorization(data,toCSVFile,categorization,numberOfSample):
+def dataCategorization(data,toCSVFile,categorization,numberOfSample,rScript):
     folder = "dataCategorization"
     DatabaseManage.createFolder(folder)
 
     if categorization =="ABC" :
         return abc(data,toCSVFile,numberOfSample)
     if categorization == "SBC":
-        return sbc(numberOfSample)
+        return sbc(numberOfSample,rScript)
     if categorization=="Slow-Fast":
         return slow_fast_moving(data,toCSVFile,numberOfSample)
 
@@ -59,9 +59,9 @@ def abc(data,toCSVFile,numberOfSample):
     saveCSV(toCSVFile+str(numberOfSample)+"ABC",ABCoutputDF)
     return ABCoutputDF
 
-def sbc(numberOfSample):
+def sbc(numberOfSample,rScript):
     # subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
-    subprocess.call(["/usr/local/bin/Rscript", "--vanilla", "sbc.r", str(numberOfSample)])
+    subprocess.call([rScript, "--vanilla", "sbc.r", str(numberOfSample)])
     return None # R codes does not return, it saves to the csv
 
 def slow_fast_moving(data):
