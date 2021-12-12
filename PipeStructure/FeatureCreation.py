@@ -55,8 +55,8 @@ def lagData(data,dateData,max_lag=7):
         prodData = prodData.iloc[max_lag:, :]
         prodDataSale=prodData[['product_id','sales']]
         prodIDCol=prodData[['product_id']]
-        dateColumns=list(dateData.columns[2:])
-        dropCols=dateColumns+["sales","basket", "fav", "visit", "impression", "quantity", "demand", "removeFromFav", "reviewCount", "rating"]
+        #dateColumns=list(dateData.columns[2:])
+        dropCols=["sales","basket", "fav", "visit", "impression", "quantity", "demand", "removeFromFav", "reviewCount", "rating"]
         prodData.drop(dropCols,axis=1, inplace=True)
         if boolTest:
             prodDatas = prodData
