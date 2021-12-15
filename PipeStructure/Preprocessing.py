@@ -28,11 +28,16 @@ def doProcess(datas,dates,numberofSamples):
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
     iter = 0 # to make sure we have enough data even if no price assigned products
+    savedproductIDs=[]
     while True:
         priceAssigned=0
         if iter==numberofSamples: # number of productID
             break
         productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
+        if productID in savedproductIDs:
+            continue
+        else:
+            savedproductIDs.append(productID)
 
 
         datasID = {"salesData": [],
