@@ -17,13 +17,15 @@ inputx2 <- paste(inputx, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
 
+prodIDs=xdata[['product_id']]
 ux <- unique(prodIDs)
+
 for (prodIDIndex in 1:length(ux))
   {
 
   prod_x <- filter(xdata, product_id == ux[prodIDIndex])[, -1] ## product x data
   prod_y <- filter(ydata, product_id == ux[prodIDIndex])[, -1] ## product y data
-  # df = cbind(prod_y, prod_x)
+  df = cbind(prod_y, prod_x)
   prod_y_train <- head(prod_y, round(nrow(prod_y) * 0.8))
   h <- nrow(prod_y) - nrow(prod_y_train)
   prod_y_test <- tail(prod_y, h)
@@ -32,8 +34,12 @@ for (prodIDIndex in 1:length(ux))
   h <- nrow(prod_x) - nrow(prod_x_train)
   prod_x_test <- tail(prod_x, h)
 
-  ets.forecast <- ets(as.vector(prod_y_train$sales))
+  ets.fit<- ets(as.vector(prod_y_train$sales))
+  # istediğimiz gibi bir sonuç mu veriyor emin değilim.
+  ets.forecast <- forecast(ets.fit,length(prod_y_test$sales))
+  print(as.matrix(prod_y_test$sales))
   ets.errors <- accuracy(ets.forecast, as.matrix(prod_y_test$sales))
-
-  #print(summary(ets.forecast))
+  print(ets.forecast)
+  print(ets.errors)
+  print(summary(ets.forecast))
 }

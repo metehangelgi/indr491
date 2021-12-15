@@ -19,7 +19,9 @@ inputx2 <- paste(inputx, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
 
+prodIDs=xdata[['product_id']]
 ux <- unique(prodIDs)
+
 for (prodIDIndex in 1:length(ux))
   {
 
@@ -36,4 +38,6 @@ for (prodIDIndex in 1:length(ux))
 
   ses.forecast <- ses(as.vector(prod_y_train$sales),h=nrow(prod_y_test),damped=TRUE, seasonal="multiplicative")
   ses.erors <- accuracy(ses.forecast, prod_y_test$sales)
+  print(ses.forecast)
+  print(ses.erors)
 }

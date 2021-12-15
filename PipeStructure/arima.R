@@ -8,7 +8,6 @@ library(readr)
 library(forecast)
 library(glmnet)
 
-print("test")
 args = commandArgs(trailingOnly=TRUE)
 numofSample=as.character(args[1])
 inputy <- c("featureCreation/new", numofSample,"Y.csv")
@@ -18,13 +17,15 @@ inputx2 <- paste(inputx, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
 
+prodIDs=xdata[['product_id']]
 ux <- unique(prodIDs)
+
 for (prodIDIndex in 1:length(ux))
   {
 
   prod_x <- filter(xdata, product_id == ux[prodIDIndex])[, -1] ## product x data
   prod_y <- filter(ydata, product_id == ux[prodIDIndex])[, -1] ## product y data
-  # df = cbind(prod_y, prod_x)
+  df = cbind(prod_y, prod_x)
   prod_y_train <- head(prod_y, round(nrow(prod_y) * 0.8))
   h <- nrow(prod_y) - nrow(prod_y_train)
   prod_y_test <- tail(prod_y, h)
