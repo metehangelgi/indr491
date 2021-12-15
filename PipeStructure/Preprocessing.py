@@ -16,14 +16,14 @@ def preprocess(numberofSamples,toCSVFile):
     datas=DatabaseManage.initializing()
     dates = sorted(datas["salesData"]["order_date"].unique())
     # numberofSamples*5 to make sure there will be enough sample after deleting no price changes
-    #productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*5)
+    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*2)
     #datas=datas.iloc[datas['product_id'].isin(datas)]
-    processedData=doProcess(datas,dates,numberofSamples)
+    processedData=doProcess(datas,dates,numberofSamples,productIDs)
     saveCSV(toCSVFile+str(numberofSamples),processedData)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
-def doProcess(datas,dates,numberofSamples):
+def doProcess(datas,dates,numberofSamples,productIDs):
     Overall = []
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
@@ -33,7 +33,11 @@ def doProcess(datas,dates,numberofSamples):
         priceAssigned=0
         if iter==numberofSamples: # number of productID
             break
-        productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
+
+        if len(productIDs)!=0:
+            productID=productIDs.pop(0)
+        else:
+            productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
         if productID in savedproductIDs:
             continue
         else:
