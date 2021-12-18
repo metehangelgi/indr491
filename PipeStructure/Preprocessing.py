@@ -18,19 +18,23 @@ def preprocess(numberofSamples,toCSVFile):
     # numberofSamples*5 to make sure there will be enough sample after deleting no price changes
     productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*2)
     #datas=datas.iloc[datas['product_id'].isin(datas)]
-    processedData=doProcess(datas,dates,numberofSamples,productIDs)
-    saveCSV(toCSVFile+str(numberofSamples),processedData)
+    processedData,processedData2=doProcess(datas,dates,numberofSamples,productIDs)
+    saveCSV(toCSVFile+str(numberofSamples),processedData,processedData2)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
 def doProcess(datas,dates,numberofSamples,productIDs):
+    MinNumSales=15
     Overall = []
+    Overall2 = []
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
     iter = 0 # to make sure we have enough data even if no price assigned products
     savedproductIDs=[]
+    savedproductIDs2 = []
     while True:
         priceAssigned=0
+        Lessthan15 = False
         if iter==numberofSamples: # number of productID
             break
 
@@ -38,10 +42,8 @@ def doProcess(datas,dates,numberofSamples,productIDs):
             productID=productIDs.pop(0)
         else:
             productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
-        if productID in savedproductIDs:
+        if productID in savedproductIDs or productID in savedproductIDs2:
             continue
-        else:
-            savedproductIDs.append(productID)
 
 
         datasID = {"salesData": [],
@@ -64,8 +66,15 @@ def doProcess(datas,dates,numberofSamples,productIDs):
 
         if len(datasID["price"]) == 0: # if has no price value
             continue  # discard given productID
+        salesD=datasID['salesData']['sales']
+        if sum(list(salesD[:round(len(salesD)*0.8)]))<MinNumSales:
+            savedproductIDs2.append(productID)
+            Lessthan15=True
+        else:
+            savedproductIDs.append(productID)
+            iter = iter + 1
 
-        iter = iter + 1
+
 
         for date in dates:
             rowArr = [productID]
@@ -147,16 +156,22 @@ def doProcess(datas,dates,numberofSamples,productIDs):
             else:
                 (rowArr.append(None) for i in range(7))
 
-            Overall.append(rowArr) # row
-    print(len(Overall))
-    return Overall
+            if Lessthan15:
+                Overall2.append(rowArr)
+            else:
+                Overall.append(rowArr) # row
+    return Overall,Overall2
 
-def saveCSV(fName,Overall):
+def saveCSV(fName,Overall,Overall2):
     folder="preProcess"
     DatabaseManage.createFolder(folder)
     filename="preProcess/"+fName+".csv"
+    filename2 = "preProcess/" + fName + "LessSales.csv"
     with open(filename,"w+") as my_csv:
         csvWriter = csv.writer(my_csv,delimiter=',')
         csvWriter.writerows(Overall)
+    with open(filename2,"w+") as my_csv2:
+        csvWriter = csv.writer(my_csv2,delimiter=',')
+        csvWriter.writerows(Overall2)
 
 
