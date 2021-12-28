@@ -8,7 +8,6 @@ import pandas as pd
 def dataCategorization(data,toCSVFile,categorization,numberOfSample,rScript):
     folder = "dataCategorization"
     DatabaseManage.createFolder(folder)
-
     if categorization =="ABC" :
         return abc(data,toCSVFile,numberOfSample)
     if categorization == "SBC":
@@ -66,6 +65,16 @@ def sbc(numberOfSample,rScript):
 
 def slow_fast_moving(data):
     pass
+
+def combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample):
+    categorizations=[]
+    for categorizationType in categorizationTypes:
+        categorizations.append(DatabaseManage.readData(process, toCSVFile + str(numberOfSample) +categorizationType))
+    InitialCat=categorizations.pop()
+    for categorization in categorizations:
+        InitialCat=InitialCat.join(categorization.set_index('product_id'), on='product_id')
+    saveCSV(toCSVFile + str(numberOfSample) + "Combined", InitialCat)
+
 
 def saveCSV(fName,Overall):
     folder="dataCategorization"
