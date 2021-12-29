@@ -50,12 +50,13 @@ forecast.dynamicReg <- function(elastic_coef,prod_x,prod_y,prod_x_train,prod_x_t
   print("hata aaa")
   #print(prod_x)
   #dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
-  # hata burası
+
   prodTest<-as.matrix(prod_x_test[,regressors])
+  # hata burası
   #dyano.forecast <- dyano.fit %>% forecast(xreg = prodTest,h=40)
+  #dyano.predict <- as.data.frame(dyano.forecast)[["Point Forecast"]]
 
   #dyno.erors <- accuracy(dyno.forecast, prod_y_test$sales)
-  #dyano.predict <- as.data.frame(dyano.forecast)[["Point Forecast"]]
   return()
 }
 
@@ -106,7 +107,7 @@ doForecasting <- function(elastic_coefs,lasso_coefs,xdata,ydata,clusteredDataID,
     h <- nrow(prod_x) - nrow(prod_x_train)
     prod_x_test <- tail(prod_x, h)
 
-    bestForecastPairs=list("nothing",100000,0)
+    bestForecastPairs=list("nothing",1/0,0)
 
     for (foreIndex in c(1:length(forecastingGroups))){
       forecastingGroup <- forecastingGroups[[foreIndex]]
@@ -115,8 +116,6 @@ doForecasting <- function(elastic_coefs,lasso_coefs,xdata,ydata,clusteredDataID,
         forecastMethod <- forecastingGroup[[j]]
         dyno.output <- 0
         if (forecastMethod == "ets"){
-          # şimdilik ets bozukken burayı kullanımıyacağım kullancam
-          #dyno.output <- NULL
           forecastOutputs[[j]]<-forecast.ets(prod_y_train,prod_y_test)
         } else if (forecastMethod == "crosten"){
           forecastOutputs[[j]]<-forecast.crosten(prod_y_train,prod_y_test)
@@ -135,6 +134,10 @@ doForecasting <- function(elastic_coefs,lasso_coefs,xdata,ydata,clusteredDataID,
       if (MaseError<bestForecastPairs[[2]]){
         bestForecastPairs<-list(paste(forecastingGroup,collapse=","),MaseError,errorFrame)
       }
+    }
+    if (bestForecastPairs[[3]] == 0){
+      #sometimes it does not give anything, for these situations give last forecast as optimal solution
+      bestForecastPairs<-list(paste(forecastingGroup,collapse=","),MaseError,errorFrame)
     }
     forecastingGroupsWhole=c(forecastingGroupsWhole,bestForecastPairs[[1]])
 
@@ -188,23 +191,21 @@ for (i in c(1:length(categorized_dataCategories))){
   clusterNum=max(clusteredData$cluster)
 
   if (clusterNum==0){
-    for (clusteredDataID in clusteredDataIDs){
-      xdataFiltered <- subset(xdata, product_id %in% clusteredDataIDs)
-      ydataFiltered <- subset(ydata, product_id %in% clusteredDataIDs)
-      output=doForecasting(elastic_coefs,lasso_coefs, xdataFiltered,ydataFiltered,clusteredDataID,0)
-      writeCSV(output,numofSample,ABCtype,SBCtype,0)
-    }
+    xdataFiltered <- subset(xdata, product_id %in% clusteredDataIDs)
+    ydataFiltered <- subset(ydata, product_id %in% clusteredDataIDs)
+    output=doForecasting(elastic_coefs,lasso_coefs, xdataFiltered,ydataFiltered,0)
+    writeCSV(output,numofSample,ABCtype,SBCtype,0)
   } else {
     for (clusterIndex in c(1:length(clusterNum))){
       #clusteredDataFiltered <- clusteredData %>% filter(cluster==clusterIndex)
       clusteredDataFiltered <- subset(clusteredData, cluster == clusterIndex)
-      clusteredDataFilteredIDs<- clusteredDataFiltered[["product_id"]]
+      clusteredDataFilteredIDs <- clusteredDataFiltered[["product_id"]]
       xdataFiltered2 <- subset(xdata, product_id %in% clusteredDataFilteredIDs)
       ydataFiltered2 <- subset(ydata, product_id %in% clusteredDataFilteredIDs)
-      for (clusteredDataFilteredID in clusteredDataFilteredIDs){
-        output=doForecasting(xdataFiltered2,ydataFiltered2,clusteredDataFilteredID,clusterIndex)
-        writeCSV(output,numofSample,ABCtype,SBCtype,clusterIndex)
-      }
+
+      output=doForecasting(elastic_coefs,lasso_coefs,xdataFiltered2,ydataFiltered2,clusterIndex)
+      writeCSV(output,numofSample,ABCtype,SBCtype,clusterIndex)
+
     }
   }
 }
