@@ -81,19 +81,7 @@ for (prodIDIndex in 1:length(ux))
 
   dyno.erors <- accuracy(dyno.forecast, prod_y_test$sales)
 
-  #ses.forecast <- ses(as.vector(prod_y_train$sales),h=nrow(prod_y_test),damped=TRUE, seasonal="multiplicative")
-  #ses.erors <- accuracy(ses.forecast, prod_y_test$sales)
-
-  #print(ses.forecast)
-  #print(ses.erors)
-
-  print(typeof(dyno.forecast))
-  print(dim(dyno.forecast))
-  as.data.frame(dyno.forecast)
-  #combined.forecast <- (ses.forecast+dyno.forecast)/2
-  #comined.errors <- accuracy(combined.forecast, prod_y_test$sales)
-
-  print(dyno.forecast)
+  print(as.data.frame(dyno.forecast))
   print(dyno.erors)
 
   #print(combined.forecast)

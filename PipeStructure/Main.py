@@ -36,7 +36,7 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
                 data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample,rScript)  # return null
         Categorization.combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample)
     elif process=='forecasting':
-        forecastingType = "ets"  # farklı şekilde handle edilecek
+        forecastingType = "dynamicReg"  # farklı şekilde handle edilecek
         if os.path.isfile('./' + process + '/' + toCSVFile + forecastingType + str(numberOfSample) + ".csv"):
             data2 = DatabaseManage.readData(process, toCSVFile + forecastingType + str(numberOfSample))
         else:

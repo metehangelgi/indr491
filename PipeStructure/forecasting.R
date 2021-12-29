@@ -3,12 +3,20 @@
 # Created by: metehangelgi
 # Created on: 28.12.2021
 
-library(factoextra)
-library(tsintermittent)
-library("dplyr")
+#library(factoextra)
+#library(tsintermittent)
+#library(dplyr)
+#library(readr)
+#library(forecast)
+#library(glmnet)
+
+library(dplyr)
 library(readr)
 library(forecast)
 library(glmnet)
+library(factoextra)
+library(cluster)
+library(tsintermittent)
 
 is.rankdeficient <- function(xregg) {
   constant_columns <- apply(xregg, 2, is.constant)
@@ -20,71 +28,69 @@ is.rankdeficient <- function(xregg) {
 }
 
 writeCSV <- function (final_data,numofSample,ABCtype,SBCtype,clustering){
-  output00 <- c("forecasting/new", numofSample,ABCtype,"_",SBCtype,clustering,".csv")
+  output00 <- c("forecast/new", numofSample,ABCtype,"_",SBCtype,clustering,".csv")
   output002 <- paste(output00, collapse="")
   write.csv(final_data,output002, row.names = FALSE)
 }
 
-forecast.dynamicReg <- function(elastic_coef,prod_x,prod_y,prod_x_test,prod_y_test){
-
+forecast.dynamicReg <- function(elastic_coef,prod_x,prod_y,prod_x_train,prod_x_test,prod_y_train,prod_y_test){
   regressors <- which(elastic_coef!= 0) # if elastic net is desired
 
-  #rank deficient sıkıntısı var çözemedim, şimdilik bu şekilde handle ettim
-  rankTest=is.rankdeficient(data.matrix(prod_x[,regressors], rownames.force = NA))
-  #print(rankTest)
+  rankTest<-is.rankdeficient(data.matrix(prod_x_train[,regressors], rownames.force = NA))
+  print(rankTest)
   if (rankTest) return()
-  print('hata2')
 
-  dyano.fit <- auto.arima(prod_y[,"sales"],
-                          xreg=data.matrix(prod_x[,regressors], rownames.force = NA))
-  print('hata3')
-  cbind("Regression Errors" = residuals(dyano.fit, type="regression"),
-        "ARIMA errors" = residuals(dyano.fit, type="innovation")) %>%
-    autoplot(facets=TRUE)
-  print('hata4')
-  checkresiduals(dyano.fit)
-  print('hata5')
-  dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40) %>% autoplot(ylab = "Sales")
-  print('hata6')
-  dyno.forecast <- dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
-  print('hat73')
-  dynamic.forecast <- as.data.frame(dyno.forecast)
-  print(dynamic.forecast)
+  dyano.fit <- auto.arima(prod_y_train[,"sales"],
+                          xreg=data.matrix(prod_x_train[,regressors], rownames.force = NA))
+  print("hatacccc")
+  RegArimaErrors <- cbind("Regression Errors" = residuals(dyano.fit, type="regression"),
+        "ARIMA errors" = residuals(dyano.fit, type="innovation"))
+  #print(RegArimaErrors)
+  checkresiduals(dyano.fit) #ne ise yarıyor?
+  print("hata aaa")
+  #print(prod_x)
+  #dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
+  # hata burası
+  prodTest<-as.matrix(prod_x_test[,regressors])
+  #dyano.forecast <- dyano.fit %>% forecast(xreg = prodTest,h=40)
+
+  #dyno.erors <- accuracy(dyno.forecast, prod_y_test$sales)
+  #dyano.predict <- as.data.frame(dyano.forecast)[["Point Forecast"]]
+  return()
 }
 
 forecast.ets <- function (prod_y_train,prod_y_test){
 
-  ets.fit<- ets(as.vector(prod_y_train$sales))
-  # hata var çözülmeli
-  ets.forecast <- as.data.frame(forecast(ets.fit,length(prod_y_test$sales)))
-  print(as.matrix(prod_y_test$sales))
-  #print(ets.forecast)
-  #print(ets.errors)
+  ets.fit <- ets(as.vector(prod_y_train$sales))
+  # istediğimiz gibi bir sonuç mu veriyor emin değilim.
+  #print(predict(ets.fit,newdata=prod_y_test$sales)$fitted)
+  #ets.forecast <- forecast::forecast(ets.fit,length(prod_y_test$sales))
 
-  #ets.forecast <- ets(as.vector(prod_y_train$sales))
-  #ets.errors <- accuracy(ets.forecast, as.matrix(prod_y_test$sales))
-
-  return(ets.forecast)
+  # forecast diyince hata veriyor çözemedim hatayı
+  #ets.forecast <- ets.fit %>% forecast::forecast(h=length(prod_y_test$sales))
+  #predict means veriyor diğeri de çalışmıyor maalesef, şimdilik hata almadığı için bunu kullaıyorum
+  # print(predict(ets.fit,h=length(prod_y_test$sales),interval = "prediction"))
+  ets.forecast <- predict(ets.fit,h=length(prod_y_test$sales),interval = "prediction")
+  ets.predict <- as.data.frame(ets.forecast)[["Point Forecast"]]
+  return(ets.predict)
 }
 
 forecast.crosten <- function (prod_y_train,prod_y_test){
   fitt <- crost(prod_y_train[["sales"]], h=40, w=NULL, type="sba", outplot = TRUE)
   predicted = as.data.frame(fitt$components$c.out)$Demand
-
-  err2 <- measures(as.matrix(prod_y_test$sales), predicted, as.matrix(prod_y_test$sales), benchmark = "naive")
-  print(predicted)
+  return(predicted)
 }
 
-doForecasting <- function(xdata,ydata,clusteredDataID,clusterID){
-  forecastingGroups = list(c('ets'),c('dynamicReg'),c('crosten'),c('dynamicReg','ets'),
-                           c('ets','crosten'),c('dynamicReg','crosten'),c('dynamicReg','ets','crosten'))
+doForecasting <- function(elastic_coefs,lasso_coefs,xdata,ydata,clusteredDataID,clusterID){
+  forecastingGroups = list(c('dynamicReg'),c('crosten'),c('ets'),c('ets','dynamicReg'),
+                           c('crosten','ets'),c('crosten','dynamicReg'),c('crosten','ets','dynamicReg'))
 
   prodIDs=xdata[['product_id']]
   ux <- unique(prodIDs)
-  forecastErrors=list()
+  forecastingGroupsWhole=c()
+  forecastingGroupsErrorsWhole=NULL
+
   for (prodIDIndex in 1:length(ux)) {
-    print(prodIDIndex)
-    print(ux[prodIDIndex])
 
     lasso_coef <- filter(lasso_coefs, product_id == ux[prodIDIndex])[, -1] ## lasso
     elastic_coef <- filter(elastic_coefs, product_id == ux[prodIDIndex])[, -1] ## elastic
@@ -100,34 +106,48 @@ doForecasting <- function(xdata,ydata,clusteredDataID,clusterID){
     h <- nrow(prod_x) - nrow(prod_x_train)
     prod_x_test <- tail(prod_x, h)
 
-    bestForecastPairs=list("nothing",100000)
+    bestForecastPairs=list("nothing",100000,0)
+
     for (foreIndex in c(1:length(forecastingGroups))){
       forecastingGroup <- forecastingGroups[[foreIndex]]
       forecastOutputs=list()
       for (j in c(1:length(forecastingGroup))){
         forecastMethod <- forecastingGroup[[j]]
+        dyno.output <- 0
         if (forecastMethod == "ets"){
+          # şimdilik ets bozukken burayı kullanımıyacağım kullancam
+          #dyno.output <- NULL
           forecastOutputs[[j]]<-forecast.ets(prod_y_train,prod_y_test)
         } else if (forecastMethod == "crosten"){
           forecastOutputs[[j]]<-forecast.crosten(prod_y_train,prod_y_test)
         } else if (forecastMethod == "dynamicReg"){
-          forecastOutputs[[j]]<-forecast.dynamicReg(elastic_coef,prod_x,prod_y,prod_x_test,prod_y_test)
+          dyno.output<-forecast.dynamicReg(elastic_coef,prod_x,prod_y,prod_x_train,prod_x_test,prod_y_train,prod_y_test)
+          forecastOutputs[[j]] <- dyno.output
         }
       }
-      forecastOutputs=Reduce(`+`, myListOfVector)/length(forecastingGroup)
-      err2 <- measures(as.matrix(prod_y_test$sales), predicted, as.matrix(prod_y_test$sales), benchmark = "naive")
+      if (is.null(dyno.output)) next
+      forecastOutputs2=Reduce(`+`, forecastOutputs)/length(forecastingGroup)
+      err2 <- measures(as.matrix(prod_y_test$sales), forecastOutputs2, as.matrix(prod_y_test$sales), benchmark = "naive")
+      errorFrame <- t(as.data.frame(err2))
+      rownames(errorFrame) <- c(ux[prodIDIndex])
+      MaseError<-(as.data.frame(errorFrame))$MASE[[1]]
       # err burdan mase çekilip compare edilecek
-
-      if (err2<bestForecastPairs[[2]]){
-        bestForecastPairs<-list(forecastingGroup,err2)
+      if (MaseError<bestForecastPairs[[2]]){
+        bestForecastPairs<-list(paste(forecastingGroup,collapse=","),MaseError,errorFrame)
       }
     }
-    #forecast.crosten(prod_y_train,prod_y_test)
-    #forecast.dynamicReg(elastic_coef,prod_x,prod_y,prod_x_test,prod_y_test)
-    forecastErrors<-c(forecastErrors,bestForecastPairs)
+    forecastingGroupsWhole=c(forecastingGroupsWhole,bestForecastPairs[[1]])
+
+    if (is.null(forecastingGroupsErrorsWhole)) {
+      forecastingGroupsErrorsWhole<-bestForecastPairs[[3]]
+    } else {
+      forecastingGroupsErrorsWhole <- rbind(forecastingGroupsErrorsWhole, bestForecastPairs[[3]])
+    }
+
   }
-  ForecastsAndIDS<-list(product_id=ux,MaseError=forecastErrors[[1]],forecastPairs=forecastErrors[[2]])
-  return (as.data.frame(ForecastsAndIDS))
+  ForecastsAndIDS <- cbind(forecastingGroupsErrorsWhole, forecastingGroup = forecastingGroupsWhole)
+  #ForecastsAndIDS<-list(product_id=ux,Errors=forecastingGroupsErrorsWhole,forecastPairs=forecastingGroupsWhole)
+  return (ForecastsAndIDS)
 }
 
 args = commandArgs(trailingOnly=TRUE)
@@ -171,7 +191,7 @@ for (i in c(1:length(categorized_dataCategories))){
     for (clusteredDataID in clusteredDataIDs){
       xdataFiltered <- subset(xdata, product_id %in% clusteredDataIDs)
       ydataFiltered <- subset(ydata, product_id %in% clusteredDataIDs)
-      output=doForecasting(xdataFiltered,ydataFiltered,clusteredDataID,0)
+      output=doForecasting(elastic_coefs,lasso_coefs, xdataFiltered,ydataFiltered,clusteredDataID,0)
       writeCSV(output,numofSample,ABCtype,SBCtype,0)
     }
   } else {
