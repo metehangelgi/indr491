@@ -10,6 +10,13 @@ library(forecast)
 library(glmnet)
 
 Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
+   LassoError <- tryCatch(
+     glmfit <- cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
+                       type.measure = "mse",family= "gaussian", alpha=1))
+   if(inherits(LassoError, "error")){
+      print(prod_y_train$sales)
+   }
+
    glmfit <- cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
                        type.measure = "mse",family= "gaussian", alpha=1)
    glmfit.prediction <-predict(glmfit, s = glmfit$lambda.1se, newx = as.matrix(prod_x_test))
@@ -22,6 +29,16 @@ Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
    list.of.fits <- list()
    for (i in 0:10) {
       fit.name <- paste0("alpha", i/10)
+
+      # try catch
+      LassoError <- tryCatch(
+      list.of.fits[[fit.name]] <-
+      cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
+                type.measure = "mse",family= "gaussian", alpha=i/10))
+      if(inherits(LassoError, "error")){
+         print(prod_y_train$sales)
+      }
+
       list.of.fits[[fit.name]] <-
       cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
                 type.measure = "mse",family= "gaussian", alpha=i/10)
@@ -77,6 +94,7 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       h <- nrow(prod_x) - nrow(prod_x_train)
       prod_x_test <- tail(prod_x, h)
       #Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
+      #print(ux[prodIDIndex])
       newListOutputs<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
 
       lassoProd <-newListOutputs$Lasso

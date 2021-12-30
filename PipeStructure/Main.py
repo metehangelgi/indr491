@@ -13,7 +13,7 @@ import FeatureCreation
 import FeatureSelection
 
 
-numberOfSample=100
+numberOfSample=150
 toCSVFile="new"
 rScript = "/usr/local/bin/Rscript"
 def main():
@@ -28,7 +28,6 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
     data2 = None
     if process=='clustering':
         if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
-            print("burasi")
             Clustering.callR(numberOfSample, toCSVFile, rScript)
     if process=='dataCategorization':
         categorizationTypes=["SBC","ABC"]
