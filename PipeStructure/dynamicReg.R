@@ -3,10 +3,19 @@
 # Created by: metehangelgi
 # Created on: 10.12.2021
 
+#library("dplyr")
+#library(readr)
+#library(forecast)
+#library(glmnet)
+
+
 library("dplyr")
 library(readr)
 library(forecast)
 library(glmnet)
+library(factoextra)
+library(cluster)
+library(tsintermittent)
 
 is.rankdeficient <- function(xregg) {
   constant_columns <- apply(xregg, 2, is.constant)
@@ -76,8 +85,8 @@ for (prodIDIndex in 1:length(ux))
     autoplot(facets=TRUE)
   checkresiduals(dyano.fit)
 
-  dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40) %>% autoplot(ylab = "Sales")
-  dyno.forecast <- dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
+  dyano.fit %>% forecast::forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40) %>% autoplot(ylab = "Sales")
+  dyno.forecast <- dyano.fit %>% forecast::forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
 
   dyno.erors <- accuracy(dyno.forecast, prod_y_test$sales)
 

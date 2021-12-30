@@ -22,12 +22,13 @@ def main():
     HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection',rScript)
     HandleProcess(data,numberOfSample,toCSVFile,'dataCategorization',rScript)
     HandleProcess(data, numberOfSample, toCSVFile, 'clustering', rScript)
-    HandleProcess(data, numberOfSample, toCSVFile, 'forecasting',rScript)
+    HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
 
 def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
     data2 = None
     if process=='clustering':
-        if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + "C_Intermittent" + ".csv"):
+        if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
+            print("burasi")
             Clustering.callR(numberOfSample, toCSVFile, rScript)
     if process=='dataCategorization':
         categorizationTypes=["SBC","ABC"]
@@ -35,10 +36,10 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
             if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) +categorizationType+ ".csv"):
                 data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample,rScript)  # return null
         Categorization.combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample)
-    elif process=='forecasting':
-        forecastingType = "dynamicReg"  # farklı şekilde handle edilecek
-        if os.path.isfile('./' + process + '/' + toCSVFile + forecastingType + str(numberOfSample) + ".csv"):
-            data2 = DatabaseManage.readData(process, toCSVFile + forecastingType + str(numberOfSample))
+    elif process=='forecast':
+        forecastingType = "forecastingNew"  # farklı şekilde handle edilecek
+        if os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
+            data2 = DatabaseManage.readData(process, toCSVFile + str(numberOfSample))
         else:
             data2 = Forecasting.forecast(data, toCSVFile, forecastingType,
                                                       numberOfSample,rScript)  # return null

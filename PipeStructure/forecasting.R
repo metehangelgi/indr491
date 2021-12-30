@@ -42,14 +42,11 @@ forecast.dynamicReg <- function(elastic_coef,prod_x,prod_y,prod_x_train,prod_x_t
 
   dyano.fit <- auto.arima(prod_y_train[,"sales"],
                           xreg=data.matrix(prod_x_train[,regressors], rownames.force = NA))
-  print("hatacccc")
   RegArimaErrors <- cbind("Regression Errors" = residuals(dyano.fit, type="regression"),
         "ARIMA errors" = residuals(dyano.fit, type="innovation"))
   #print(RegArimaErrors)
   checkresiduals(dyano.fit) #ne ise yarıyor?
   print("hata aaa")
-  #print(prod_x)
-  #dyano.fit %>% forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
 
   prodTest<-as.matrix(prod_x_test[,regressors])
   # hata burası

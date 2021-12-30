@@ -17,6 +17,12 @@ writeCSV <- function (final_data,numofSample,ABCtype,SBCtype){
   write.csv(final_data,output002, row.names = FALSE)
 }
 
+writeCSV2 <- function (final_data,numofSample){
+  output00 <- c("clustering/new", numofSample,".csv")
+  output002 <- paste(output00, collapse="")
+  write.csv(final_data,output002, row.names = FALSE)
+}
+
 args = commandArgs(trailingOnly=TRUE)
 numofSample=as.character(args[1])
 inputy <- c("featureCreation/new", numofSample,"Y.csv")
@@ -74,17 +80,16 @@ for (a in c(1:length(categorized_dataCategories))){
   AAprodIDs=filtered[['product_id']]
   categorized_dataIDs[[a]]=AAprodIDs
 }
-
+WholeClustered <- NULL
 for (i in c(1:length(categorized_dataIDs))){
   ######Selection of which category will be clustered (change B_Intermittent)
   ABCtype<-categorized_dataCategories[[i]][[1]]
   SBCtype<-categorized_dataCategories[[i]][[2]]
   if(length(categorized_dataIDs[[i]])==0) {
-    final_data=NULL
-    writeCSV(final_data,numofSample,ABCtype,SBCtype)
+    #final_data=NULL
+    #writeCSV(final_data,numofSample,ABCtype,SBCtype)
     next
   }
-
 
   sbset <- subset(categories, product_id %in% categorized_dataIDs[[i]])
   sbset <- sbset[, colSums(sbset != 0) > 0]
@@ -99,25 +104,36 @@ for (i in c(1:length(categorized_dataIDs))){
 
   if(inherits(possibleError, "error")) {
     final_dataPre <- cbind(sbset, cluster = 0)
-    writeCSV(final_dataPre,numofSample,ABCtype,SBCtype)
+    final_dataPre2 <- final_dataPre[c("product_id","cluster")]
+    final_dataPre2$ABCtype <- ABCtype
+    final_dataPre2$SBCtype <- SBCtype
+    if (is.null(WholeClustered)){
+      WholeClustered <- final_dataPre2
+    } else {
+      WholeClustered <- rbind(WholeClustered,final_dataPre2)
+    }
+    #writeCSV(final_dataPre,numofSample,ABCtype,SBCtype)
     next
   }
 
-  ####elbow method to decide optimal number of clusters (for B_Intermittent it is 2)
-  ####elbow method can be researched
-  ####if the number of product in any category(A_Lumpy, B_Intermittent vs.) is very low,
-  ####and there is no meaningful cluster numbers, then go directly to model training part
   fviz_nbclust(sbset2, kmeans, method = "wss", k.max = 10)
   set.seed(5)
   #perform k-means clustering with optimal number of clusters
   km <- kmeans(sbset2, centers = 2, nstart = 25)
-
-  #view results
-  #km
   #merge back to cluster numbers to categoric data to work on different clusters
   final_data <- cbind(sbset, cluster = km$cluster)
-  writeCSV(final_data,numofSample,ABCtype,SBCtype)
+  final_data2 <- final_data[c("product_id","cluster")]
+  final_data2$ABCtype <- ABCtype
+  final_data2$SBCtype <- SBCtype
+  if (is.null(WholeClustered)){
+    WholeClustered <- final_data2
+  } else {
+    WholeClustered <- rbind(WholeClustered,final_data2)
+  }
+  #writeCSV(final_data,numofSample,ABCtype,SBCtype)
 }
+writeCSV2(WholeClustered,numofSample)
+
 
 
 
