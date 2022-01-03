@@ -14,9 +14,9 @@ numofSample=as.character(args[1])
 inputy <- c("featureCreation/new", numofSample,"Y.csv")
 inputy2 <- paste(inputy, collapse="")
 ydata <- read_csv(inputy2)
-
+lag <- 30
 #numbering for dates to reshape the data to proper format
-ydata$dates <- rep(1:200, numofSample)
+ydata$dates <- rep(1:(207-lag), numofSample)
 
 #proper format for data to SBC categorization
 new_df <- subset(dcast(ydata, dates ~ product_id, value.var="sales"), select = -c(dates))

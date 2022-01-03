@@ -19,7 +19,7 @@ import re
 
 
 
-def lagData(data,dateData,max_lag=7):
+def lagData(data,dateData,max_lag=30):
     prodDatas = []
     prodDataSales=[]
     prodIDCols=[]
@@ -36,15 +36,16 @@ def lagData(data,dateData,max_lag=7):
         prodData = data[207 * j:207 * (j + 1)]
         # Productlasso = {}
         # productLasso=[]
-        r = re.compile("brand_ID.*")
-        brandCols = list(filter(r.match, prodData.columns))  # Read Note below
+        #r = re.compile("brand_ID.*")
+        #brandCols = list(filter(r.match, prodData.columns))  # Read Note below
         r = re.compile("gender.*")
         genderCols = list(filter(r.match, prodData.columns))  # Read Note below
         r = re.compile("size.*")
         sizeCols = list(filter(r.match, prodData.columns))  # Read Note below
-        excludeList = ['product_id', 'sales', 'price', 'Cumartesi', 'Pazar']
+        excludeList = ['product_id', 'sales', 'price', 'Cumartesi', 'Pazar',"kampanya_1","kampanya_2","kampanya_3","kampanya_4"]
         # excludeList=excludeList+list(dateData.columns)+brandCols+genderCols+sizeCols
-        excludeList = excludeList + brandCols + genderCols + sizeCols
+        #excludeList = excludeList + brandCols + genderCols + sizeCols
+        excludeList = excludeList + genderCols + sizeCols
 
         for column in prodData.columns:
             if column in excludeList:
@@ -78,10 +79,10 @@ def featureCreation(datas,numberOfSample, toCSVFile):
     for column in dateData.columns:
         data[column] = np.tile(dateData[column].to_numpy(), len(datas["product_id"].unique()))
 
-    BrandIDCols=data['brand_id'].unique()
-    for BrandIDCol in BrandIDCols:
-        data['brand_ID_'+str(BrandIDCol)]=0
-        data.loc[data.brand_id == BrandIDCol,'brand_ID_'+str(BrandIDCol)]=1
+    #BrandIDCols=data['brand_id'].unique()
+    #for BrandIDCol in BrandIDCols:
+    #    data['brand_ID_'+str(BrandIDCol)]=0
+    #    data.loc[data.brand_id == BrandIDCol,'brand_ID_'+str(BrandIDCol)]=1
 
     GenderCols = data['gender'].unique()
     for GenderCol in GenderCols:

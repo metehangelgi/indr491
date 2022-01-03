@@ -33,18 +33,18 @@ inputy <- c("featureCreation/new", numofSample,"Y.csv")
 inputy2 <- paste(inputy, collapse="")
 inputx <- c("featureCreation/new", numofSample,".csv")
 inputx2 <- paste(inputx, collapse="")
-inputLasso<-c("featureSelection/new", numofSample,".csv")
-inputLasso2 <- paste(inputLasso, collapse="")
+#inputLasso<-c("featureSelection/new", numofSample,".csv")
+#inputLasso2 <- paste(inputLasso, collapse="")
 inputElastic<-c("featureSelection/newElastic", numofSample,".csv")
 inputElastic2 <- paste(inputElastic, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
-lasso_coefs <- read_csv(inputLasso2)
+#lasso_coefs <- read_csv(inputLasso2)
 elastic_coefs <- read_csv(inputElastic2)
 
-clusteredInput <- c("clustering/new", numofSample,".csv")
-clusteredInput2 <- paste(clusteredInput, collapse="")
-clusteredData <- read_csv(clusteredInput2)
+#clusteredInput <- c("clustering/new", numofSample,".csv")
+#clusteredInput2 <- paste(clusteredInput, collapse="")
+#clusteredData <- read_csv(clusteredInput2)
 
 
 # exclude brandid,gender,size
@@ -60,28 +60,31 @@ forecastingGroupsErrorsWhole <- NULL
 for (prodIDIndex in 1:length(ux))
   {
 
-  lasso_coef <- filter(lasso_coefs, product_id == ux[prodIDIndex])[, -1] ## lasso
+  #lasso_coef <- filter(lasso_coefs, product_id == ux[prodIDIndex])[, -1] ## lasso
   elastic_coef <- filter(elastic_coefs, product_id == ux[prodIDIndex])[, -1] ## elastic
   prod_x <- filter(xdata, product_id == ux[prodIDIndex])[, -1] ## product x data
   prod_y <- filter(ydata, product_id == ux[prodIDIndex])[, -1] ## product y data
-  clusteredDataGivenID <- filter(clusteredData, product_id == ux[prodIDIndex])
+  #clusteredDataGivenID <- filter(clusteredData, product_id == ux[prodIDIndex])
   # df = cbind(prod_y, prod_x)
-  prod_y_train <- head(prod_y, round(nrow(prod_y) * 0.8))
+  #prod_y_train <- head(prod_y, round(nrow(prod_y) * 0.8))
+  prod_y_train <- head(prod_y, nrow(prod_y)-7)
   h <- nrow(prod_y) - nrow(prod_y_train)
   prod_y_test <- tail(prod_y, h)
 
-  prod_x_train <- head(prod_x, round(nrow(prod_x) * 0.8))
+  #prod_x_train <- head(prod_x, round(nrow(prod_x) * 0.8))
+  prod_x_train <- head(prod_x, nrow(prod_x)-7)
   h <- nrow(prod_x) - nrow(prod_x_train)
   prod_x_test <- tail(prod_x, h)
 
   methods <- list()
-  maseError <- vector()
+  maseErrors <- vector()
   errors <- list()
+  predicts <- list()
   i <- 1
   regressors <- which(elastic_coef!= 0) # if elastic net is desired
   #rank deficient sıkıntısı var çözemedim, şimdilik bu şekilde handle ettim
   rankTest=is.rankdeficient(data.matrix(prod_x[,regressors], rownames.force = NA))
-
+  #dynamic
   if (!(rankTest)){
 
     ARIMAmodelNotfound <- tryCatch(
@@ -98,14 +101,15 @@ for (prodIDIndex in 1:length(ux))
       #checkresiduals(dyano.fit)  #ne ise yarıyor
 
       #dynamic
-      dyno.forecast <- dyano.fit %>% forecast::forecast(xreg = as.matrix(prod_x_test[,regressors]),h=40)
+      dyno.forecast <- dyano.fit %>% forecast::forecast(xreg = as.matrix(prod_x_test[,regressors]),h=7)
       dyno.predict <-as.data.frame(dyno.forecast)[["Point Forecast"]]
-      print("1")
+      predicts[[i]] <- dyno.predict
       dyno.err <- measures(as.matrix(prod_y_test$sales), dyno.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
       dyno.errorFrame <- t(as.data.frame(dyno.err))
       errors[[i]] <- dyno.errorFrame
-      dyno.MaseError<-(as.data.frame(dyno.errorFrame))$MASE[[1]]
-      maseError <- c(maseError,dyno.MaseError)
+      #dyno.MaseError<-(as.data.frame(dyno.errorFrame))$MASE[[1]]
+      dyno.MaseError<-(as.data.frame(dyno.errorFrame))$MAE[[1]]
+      maseErrors <- c(maseErrors, dyno.MaseError)
       methods[[i]] <- "dyno"
       i <- i + 1
       #dyno.predict <- accuracy(dyno.forecast, prod_y_test$sales)
@@ -115,54 +119,111 @@ for (prodIDIndex in 1:length(ux))
   #ets
   methods[[i]] <- "ets"
   ets.fit<- ets(as.vector(prod_y_train$sales))
-  ets.forecast <- forecast(ets.fit,length(prod_y_test$sales))
+  ets.forecast <- forecast(ets.fit,,h=7)
   ets.predict<-as.data.frame(ets.forecast)[["Point Forecast"]]
-  print("2")
+  predicts[[i]] <- ets.predict
   ets.err <- measures(as.matrix(prod_y_test$sales), ets.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
   ets.errorFrame <- t(as.data.frame(ets.err))
   errors[[i]] <- ets.errorFrame
-  ets.MaseError<-(as.data.frame(ets.errorFrame))$MASE[[1]]
-  maseError <- c(maseError,ets.MaseError)
+  #ets.MaseError<-(as.data.frame(ets.errorFrame))$MASE[[1]]
+  ets.MaseError<-(as.data.frame(ets.errorFrame))$MAE[[1]]
+  maseErrors <- c(maseErrors, ets.MaseError)
   i <- i + 1
 
   #crosten
   methods[[i]] <- "crost"
-  crost.fit <- crost(prod_y_train[["sales"]], h=40, w=NULL, type="sba", outplot = TRUE)
+  crost.fit <- crost(prod_y_train[["sales"]], h=7, w=NULL, type="sba", outplot = TRUE)
   crost.predict = as.data.frame(crost.fit$components$c.out)$Demand
-  print("3")
+  predicts[[i]] <- crost.predict
   crost.err <- measures(as.matrix(prod_y_test$sales), crost.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
   crost.errorFrame <- t(as.data.frame(crost.err))
   errors[[i]] <- crost.errorFrame
-  crost.MaseError<-(as.data.frame(crost.errorFrame))$MASE[[1]]
-  maseError <- c(maseError,crost.MaseError)
+  #crost.MaseError<-(as.data.frame(crost.errorFrame))$MASE[[1]]
+  crost.MaseError<-(as.data.frame(crost.errorFrame))$MAE[[1]]
+  maseErrors <- c(maseErrors, crost.MaseError)
   i <- i + 1
 
+  #forward algorithm
+  usedMethods <- list()
+  minMase <- min(maseErrors)
+  minIndex <- which.min(maseErrors)
+  #minErr <- errors[[minIndex]]
+  minMethod <- methods[[minIndex]]
+  methods <- methods[-1*minIndex]
+
+  usedMethodNum <- 1
+  usedMethods[[usedMethodNum]] <- minMethod
+  currentPredict <- predicts[[minIndex]]
+  predicts <- predicts[-1*minIndex]
+  currentMase <- maseErrors[[minIndex]]
+  maseErrors <- maseErrors[-1*minIndex]
+  currentError <- errors[[minIndex]]
+  # while gelecek
+  while (!is.null(maseErrors)){
+
+    minMase <- min(maseErrors)
+    minIndex <- which.min(maseErrors)
+    if (!is.finite(minMase)){
+      break
+    }
+    minPredict <- predicts[[minIndex]]
+    minMethod <- methods[[minIndex]]
+
+
+    combined.predict=(minPredict*currentMase) + (currentPredict*minMase)/(currentMase+minMase)
+    combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
+    combined.errorFrame <- t(as.data.frame(combined.err))
+    #errors[[i]] <- combined.errorFrame
+    #combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
+    combined.MaseError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
+    if (combined.MaseError < currentMase){
+      usedMethodNum <- usedMethodNum + 1
+      methods <- methods[-1*minIndex]
+      usedMethods[[usedMethodNum]] <- minMethod
+      currentMase <- combined.MaseError
+      currentError <- combined.errorFrame
+      currentPredict <- combined.predict
+      predicts <- predicts[-1*minIndex]
+      maseErrors <- maseErrors[-1*minIndex]
+      print(usedMethodNum)
+      print(currentMase)
+    } else {
+      break
+    }
+
+  }
+
+
+
+
+
+  "
   # dyno - ets
   if (!(rankTest)){
-    methods[[i]] <-  "dyno,ets"
+    methods[[i]] <-  'dyno,ets'
     forecastOutputs <- list()
     forecastOutputs[[1]] <- dyno.predict
     forecastOutputs[[2]] <- ets.predict
     dyno.ets.combined=Reduce(`+`, forecastOutputs)/length(2)
-    print("4")
-    dyno.ets.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.combined, as.matrix(prod_y_test$sales), benchmark = "naive")
+    dyno.ets.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
     dyno.ets.errorFrame <- t(as.data.frame(dyno.ets.err))
     errors[[i]] <- dyno.ets.errorFrame
     dyno.ets.MaseError<-(as.data.frame(dyno.ets.errorFrame))$MASE[[1]]
     maseError <- c(maseError,dyno.ets.MaseError)
     i <- i + 1
   }
+  "
 
 
+  "
   # dyno - crost
   if (!(rankTest)){
-    methods[[i]] <-  "dyno,crost"
+    methods[[i]] <-  'dyno,crost'
     forecastOutputs <- list()
     forecastOutputs[[1]] <- dyno.predict
     forecastOutputs[[2]] <- crost.predict
     dyno.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-    print("5")
-    dyno.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.crost.combined, as.matrix(prod_y_test$sales), benchmark = "naive")
+    dyno.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
     dyno.crost.errorFrame <- t(as.data.frame(dyno.crost.err))
     errors[[i]] <- dyno.crost.errorFrame
     dyno.crost.MaseError<-(as.data.frame(dyno.crost.errorFrame))$MASE[[1]]
@@ -172,13 +233,12 @@ for (prodIDIndex in 1:length(ux))
 
 
   # ets - crost
-  methods[[i]] <-  "ets,crost"
+  methods[[i]] <-  'ets,crost'
   forecastOutputs <- list()
   forecastOutputs[[1]] <- ets.predict
   forecastOutputs[[2]] <- crost.predict
   ets.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-  print("6")
-  ets.crost.err <- measures(as.matrix(prod_y_test$sales), ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = "naive")
+  ets.crost.err <- measures(as.matrix(prod_y_test$sales), ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
   ets.crost.errorFrame <- t(as.data.frame(ets.crost.err))
   errors[[i]] <- ets.crost.errorFrame
   ets.crost.MaseError<-(as.data.frame(ets.crost.errorFrame))$MASE[[1]]
@@ -187,27 +247,31 @@ for (prodIDIndex in 1:length(ux))
 
   # dyno - ets - crost
   if (!(rankTest)){
-    methods[[i]] <-  "dyno,ets,crost"
+    methods[[i]] <-  'dyno,ets,crost'
     forecastOutputs <- list()
     forecastOutputs[[1]] <- ets.predict
     forecastOutputs[[2]] <- crost.predict
     dyno.ets.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-    print("7")
-    dyno.ets.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = "naive")
+    dyno.ets.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
     dyno.ets.crost.errorFrame <- t(as.data.frame(dyno.ets.crost.err))
     errors[[i]] <- dyno.ets.crost.errorFrame
     dyno.ets.crost.MaseError<-(as.data.frame(dyno.ets.crost.errorFrame))$MASE[[1]]
     maseError <- c(maseError,dyno.ets.crost.MaseError)
     i <- i + 1
   }
+  "
 
-  minMase <- min(maseError)
-  minIndex <- which.min(maseError)
-  minErr <- errors[[minIndex]]
-  minMethod <- methods[[minIndex]]
-  ForecastAndID <- cbind(product_id = ux[prodIDIndex],cluster=clusteredDataGivenID$cluster[[1]],
-                            ABCtype=clusteredDataGivenID$ABCtype[[1]],SBCtype=clusteredDataGivenID$SBCtype[[1]],
-                            forecastingGroup = minMethod,minErr)
+  #minMase <- min(maseError)
+  #minIndex <- which.min(maseError)
+  #minErr <- errors[[minIndex]]
+  #minMethod <- methods[[minIndex]]
+  #ForecastAndID <- cbind(product_id = ux[prodIDIndex],cluster=clusteredDataGivenID$cluster[[1]],
+  #                          ABCtype=clusteredDataGivenID$ABCtype[[1]],SBCtype=clusteredDataGivenID$SBCtype[[1]],
+  #                          forecastingGroup = paste(usedMethods, collapse=","),currentError)
+
+  ForecastAndID <- cbind(product_id = ux[prodIDIndex],
+                         forecastingGroup = paste(usedMethods, collapse=","),
+                         currentError)
   #print(ForecastAndID)
   #ForecastAndID <- cbind(ForecastAndIDPre,forecastingGroup = minMethod)
   if (!is.null(forecastingGroupsErrorsWhole)){

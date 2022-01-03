@@ -15,16 +15,17 @@ def generalZeroPadding(datasID,date,dataname,rowname):
 def preprocess(numberofSamples,toCSVFile):
     datas=DatabaseManage.initializing()
     dates = sorted(datas["salesData"]["order_date"].unique())
-    # numberofSamples*5 to make sure there will be enough sample after deleting no price changes
-    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*5)
+    # numberofSamples*50 to make sure there will be enough sample after deleting no price changes, ABC
+    productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*50)
     #datas=datas.iloc[datas['product_id'].isin(datas)]
-    processedData,processedData2=doProcess(datas,dates,numberofSamples,productIDs)
+    processedData,processedData2=doProcess(datas,dates,numberofSamples*10,productIDs)
     saveCSV(toCSVFile+str(numberofSamples),processedData,processedData2)
+    Sample.getASample(toCSVFile, numberofSamples)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
 
 def doProcess(datas,dates,numberofSamples,productIDs):
-    MinNumSales=15
+    MinNumSales=20
     Overall = []
     Overall2 = []
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
@@ -184,7 +185,7 @@ def doProcess(datas,dates,numberofSamples,productIDs):
 def saveCSV(fName,Overall,Overall2):
     folder="preProcess"
     DatabaseManage.createFolder(folder)
-    filename="preProcess/"+fName+".csv"
+    filename="preProcess/"+fName+"PRE.csv"
     filename2 = "preProcess/" + fName + "LessSales.csv"
     with open(filename,"w+") as my_csv:
         csvWriter = csv.writer(my_csv,delimiter=',')
