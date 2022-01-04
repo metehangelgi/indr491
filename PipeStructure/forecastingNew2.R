@@ -1,7 +1,7 @@
 # Title     : TODO
 # Objective : TODO
 # Created by: metehangelgi
-# Created on: 10.12.2021
+# Created on: 04.01.2022
 library(e1071)
 library("dplyr")
 library(readr)
@@ -223,22 +223,24 @@ for (prodIDIndex in 1:length(ux))
   CurrentErrorMetic <- usingError[[minIndex]]
   usingError <- usingError[-1*minIndex]
   currentError <- errors[[minIndex]]
-  # while gelecek
-  while (!is.null(usingError)){
+  POSTusingError <- usingError
+  POSTmethods <- methods
+  POSTpredicts <- predicts
+  # while
+  while (!is.null(POSTusingError)){
 
-    minError <- min(usingError)
-    minIndex <- which.min(usingError)
+    minError <- min(POSTusingError)
+    minIndex <- which.min(POSTusingError)
     #print(minIndex)
     if (!is.finite(minError)){
       break
     }
-    minPredict <- predicts[[minIndex]]
-    minMethod <- methods[[minIndex]]
+
+    minPredict <- POSTpredicts[[minIndex]]
+    POSTminMethod <- POSTmethods[[minIndex]]
 
     # weighted combination, inversely proportional to the errors
     combined.predict=(minPredict*CurrentErrorMetic) + (currentPredict*minError)/(CurrentErrorMetic+minError)
-    # direct combination
-    #combined.predict=(minPredict+ currentPredict)/2
     combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
     combined.errorFrame <- t(as.data.frame(combined.err))
     #errors[[i]] <- combined.errorFrame
@@ -251,17 +253,22 @@ for (prodIDIndex in 1:length(ux))
     #combined.MaseError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
     if (combined.ErrorMetric < CurrentErrorMetic){
       usedMethodNum <- usedMethodNum + 1
-      methods <- methods[-1*minIndex]
+      index = which(methods == POSTminMethod)
+      minMethod <- methods[[index]]
+      methods <- methods[-1*index]
       usedMethods[[usedMethodNum]] <- minMethod
       CurrentErrorMetic <- combined.ErrorMetric
       currentError <- combined.errorFrame
       currentPredict <- combined.predict
-      predicts <- predicts[-1*minIndex]
-      usingError <- usingError[-1*minIndex]
-      #print(usedMethodNum)
-      #print(currentMase)
+      predicts <- predicts[-1*index]
+      usingError <- usingError[-1*index]
+      POSTusingError <- usingError
+      POSTmethods <- methods
+      POSTpredicts <- predicts
     } else {
-      break
+      POSTmethods <- POSTmethods[-1*minIndex]
+      POSTpredicts <- POSTpredicts[-1*minIndex]
+      POSTusingError <- POSTusingError[-1*minIndex]
     }
 
   }

@@ -1,7 +1,7 @@
 # Title     : TODO
 # Objective : TODO
 # Created by: metehangelgi
-# Created on: 10.12.2021
+# Created on: 4.01.2021
 library(e1071)
 library("dplyr")
 library(readr)
@@ -195,158 +195,137 @@ for (prodIDIndex in 1:length(ux))
   svm.MaeError<-(as.data.frame(svm.errorFrame))$MAE[[1]]
   maeErrors <- c(maseErrors, svm.MaeError)
   #print("svm done")
-  #i <- i + 1
-
-
-  #forward algorithm
-  usedMethods <- list()
-  minMase <- min(maseErrors)
-  minIndex <- which.min(maseErrors)
-  usingError <- vector()
-  maeActive <- FALSE
-  if (is.infinite(minMase)){
-    maeActive <- TRUE
-    usingError<-maeErrors
-  } else {
-    usingError<-maseErrors
-  }
-
-  minError <- min(usingError)
-  minIndex <- which.min(usingError)
-  minMethod <- methods[[minIndex]]
-  methods <- methods[-1*minIndex]
-
-  usedMethodNum <- 1
-  usedMethods[[usedMethodNum]] <- minMethod
-  currentPredict <- predicts[[minIndex]]
-  predicts <- predicts[-1*minIndex]
-  CurrentErrorMetic <- usingError[[minIndex]]
-  usingError <- usingError[-1*minIndex]
-  currentError <- errors[[minIndex]]
-  # while gelecek
-  while (!is.null(usingError)){
-
-    minError <- min(usingError)
-    minIndex <- which.min(usingError)
-    #print(minIndex)
-    if (!is.finite(minError)){
-      break
-    }
-    minPredict <- predicts[[minIndex]]
-    minMethod <- methods[[minIndex]]
-
-    # weighted combination, inversely proportional to the errors
-    combined.predict=(minPredict*CurrentErrorMetic) + (currentPredict*minError)/(CurrentErrorMetic+minError)
-    # direct combination
-    #combined.predict=(minPredict+ currentPredict)/2
-    combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
-    combined.errorFrame <- t(as.data.frame(combined.err))
-    #errors[[i]] <- combined.errorFrame
-    if (maeActive){
-      combined.ErrorMetric<-(as.data.frame(combined.errorFrame))$MAE[[1]]
-    } else {
-      combined.ErrorMetric<-(as.data.frame(combined.errorFrame))$MASE[[1]]
-    }
-    #combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
-    #combined.MaseError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
-    if (combined.ErrorMetric < CurrentErrorMetic){
-      usedMethodNum <- usedMethodNum + 1
-      methods <- methods[-1*minIndex]
-      usedMethods[[usedMethodNum]] <- minMethod
-      CurrentErrorMetic <- combined.ErrorMetric
-      currentError <- combined.errorFrame
-      currentPredict <- combined.predict
-      predicts <- predicts[-1*minIndex]
-      usingError <- usingError[-1*minIndex]
-      #print(usedMethodNum)
-      #print(currentMase)
-    } else {
-      break
-    }
-
-  }
-
-
-
-
-
-  "
-  # dyno - ets
-  if (!(rankTest)){
-    methods[[i]] <-  'dyno,ets'
-    forecastOutputs <- list()
-    forecastOutputs[[1]] <- dyno.predict
-    forecastOutputs[[2]] <- ets.predict
-    dyno.ets.combined=Reduce(`+`, forecastOutputs)/length(2)
-    dyno.ets.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
-    dyno.ets.errorFrame <- t(as.data.frame(dyno.ets.err))
-    errors[[i]] <- dyno.ets.errorFrame
-    dyno.ets.MaseError<-(as.data.frame(dyno.ets.errorFrame))$MASE[[1]]
-    maseError <- c(maseError,dyno.ets.MaseError)
-    i <- i + 1
-  }
-  "
-
-
-  "
-  # dyno - crost
-  if (!(rankTest)){
-    methods[[i]] <-  'dyno,crost'
-    forecastOutputs <- list()
-    forecastOutputs[[1]] <- dyno.predict
-    forecastOutputs[[2]] <- crost.predict
-    dyno.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-    dyno.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
-    dyno.crost.errorFrame <- t(as.data.frame(dyno.crost.err))
-    errors[[i]] <- dyno.crost.errorFrame
-    dyno.crost.MaseError<-(as.data.frame(dyno.crost.errorFrame))$MASE[[1]]
-    maseError <- c(maseError,dyno.crost.MaseError)
-    i <- i + 1
-  }
-
-
-  # ets - crost
-  methods[[i]] <-  'ets,crost'
-  forecastOutputs <- list()
-  forecastOutputs[[1]] <- ets.predict
-  forecastOutputs[[2]] <- crost.predict
-  ets.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-  ets.crost.err <- measures(as.matrix(prod_y_test$sales), ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
-  ets.crost.errorFrame <- t(as.data.frame(ets.crost.err))
-  errors[[i]] <- ets.crost.errorFrame
-  ets.crost.MaseError<-(as.data.frame(ets.crost.errorFrame))$MASE[[1]]
-  maseError <- c(maseError,ets.crost.MaseError)
   i <- i + 1
 
-  # dyno - ets - crost
-  if (!(rankTest)){
-    methods[[i]] <-  'dyno,ets,crost'
-    forecastOutputs <- list()
-    forecastOutputs[[1]] <- ets.predict
-    forecastOutputs[[2]] <- crost.predict
-    dyno.ets.crost.combined=Reduce(`+`, forecastOutputs)/length(2)
-    dyno.ets.crost.err <- measures(as.matrix(prod_y_test$sales), dyno.ets.crost.combined, as.matrix(prod_y_test$sales), benchmark = 'naive')
-    dyno.ets.crost.errorFrame <- t(as.data.frame(dyno.ets.crost.err))
-    errors[[i]] <- dyno.ets.crost.errorFrame
-    dyno.ets.crost.MaseError<-(as.data.frame(dyno.ets.crost.errorFrame))$MASE[[1]]
-    maseError <- c(maseError,dyno.ets.crost.MaseError)
+  #combined Methods
+  iterateMethods <- methods
+  iteratePredicts <- predicts
+
+  # combination 2 methods
+  for (index in c(1:length(iterateMethods))){
+    for (index2 in c((index+1):length(iterateMethods))){
+      method1 <- iterateMethods[index]
+      method2 <- iterateMethods[index2]
+      predict1 <- iteratePredicts[index]
+      predict2 <- iteratePredicts[index2]
+      methods[[i]] <- paste(c(method1,method2),sep = ",")
+      # direct combination
+      print(method1)
+      print(c(predict1[[1]]))
+      print(method2)
+      print(c(predict2[[1]]))
+      combined.predict=(c(predict1[[1]]) + c(predict2[[1]]))/2
+      predicts[[i]] <- combined.predict
+      combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
+      combined.errorFrame <- t(as.data.frame(combined.err))
+      errors[[i]] <- combined.errorFrame
+      combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
+      maseErrors <- c(maseErrors, combined.MaseError)
+      combined.MaeError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
+      maeErrors <- c(maseErrors, combined.MaeError)
+      i <- i + 1
+    }
+  }
+
+  # combination 3 methods
+  indices <- list(c(1,2,3),c(1,2,4),c(1,2,5),c(1,3,4),c(1,3,5),c(1,4,5),c(2,3,4),c(2,3,5),c(2,4,5),c(3,4,5))
+  for (indices2 in indices){
+    method1 <- iterateMethods[indices2[1]]
+    method2 <- iterateMethods[indices2[2]]
+    method3 <- iterateMethods[indices2[3]]
+    predict1 <- iteratePredicts[indices2[1]]
+    predict2 <- iteratePredicts[indices2[2]]
+    predict3 <- iteratePredicts[indices2[3]]
+    methods[[i]] <- paste(c(method1,method2,method3),sep = ",")
+    # direct combination
+    combined.predict=(c(predict1[[1]]) + c(predict2[[1]]) + c(predict3[[1]]))/3
+    predicts[[i]] <- combined.predict
+    combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
+    combined.errorFrame <- t(as.data.frame(combined.err))
+    errors[[i]] <- combined.errorFrame
+    combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
+    maseErrors <- c(maseErrors, combined.MaseError)
+    combined.MaeError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
+    maeErrors <- c(maseErrors, combined.MaeError)
     i <- i + 1
   }
-  "
 
-  #minMase <- min(maseError)
-  #minIndex <- which.min(maseError)
+    # combination 4 methods
+  indices <- list(c(1,2,3,4),c(1,2,3,5),c(1,2,4,5),c(1,3,4,5),c(2,3,4,5))
+  for (indices2 in indices){
+    method1 <- iterateMethods[indices2[1]]
+    method2 <- iterateMethods[indices2[2]]
+    method3 <- iterateMethods[indices2[3]]
+    method4 <- iterateMethods[indices2[4]]
+    predict1 <- iteratePredicts[indices2[1]]
+    predict2 <- iteratePredicts[indices2[2]]
+    predict3 <- iteratePredicts[indices2[3]]
+    predict4 <- iteratePredicts[indices2[4]]
+    methods[[i]] <- paste(c(method1,method2,method3,method4),sep = ",")
+    # direct combination
+    combined.predict=(c(predict1[[1]]) + c(predict2[[1]]) + c(predict3[[1]]) + c(predict4[[1]]))/4
+    predicts[[i]] <- combined.predict
+    combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
+    combined.errorFrame <- t(as.data.frame(combined.err))
+    errors[[i]] <- combined.errorFrame
+    combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
+    maseErrors <- c(maseErrors, combined.MaseError)
+    combined.MaeError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
+    maeErrors <- c(maseErrors, combined.MaeError)
+    i <- i + 1
+  }
+
+
+  method1 <- iterateMethods[1]
+  method2 <- iterateMethods[2]
+  method3 <- iterateMethods[3]
+  method4 <- iterateMethods[4]
+  method5 <- iterateMethods[5]
+  predict1 <- iteratePredicts[1]
+  predict2 <- iteratePredicts[2]
+  predict3 <- iteratePredicts[3]
+  predict4 <- iteratePredicts[4]
+  predict5 <- iteratePredicts[5]
+  methods[[i]] <- paste(c(method1,method2,method3,method4,method5),sep = ",")
+  # direct combination
+  combined.predict=(c(predict1[[1]]) + c(predict2[[1]]) + c(predict3[[1]]) + c(predict4[[1]]) + c(predict5[[1]]))/5
+  predicts[[i]] <- combined.predict
+  combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
+  combined.errorFrame <- t(as.data.frame(combined.err))
+  errors[[i]] <- combined.errorFrame
+  combined.MaseError<-(as.data.frame(combined.errorFrame))$MASE[[1]]
+  maseErrors <- c(maseErrors, combined.MaseError)
+  combined.MaeError<-(as.data.frame(combined.errorFrame))$MAE[[1]]
+  maeErrors <- c(maseErrors, combined.MaeError)
+  #i <- i + 1
+
+  # using mae
+  #minMae <- min(maeErrors)
+  #minIndex <- which.min(maeErrors)
   #minErr <- errors[[minIndex]]
   #minMethod <- methods[[minIndex]]
-  #ForecastAndID <- cbind(product_id = ux[prodIDIndex],cluster=clusteredDataGivenID$cluster[[1]],
-  #                          ABCtype=clusteredDataGivenID$ABCtype[[1]],SBCtype=clusteredDataGivenID$SBCtype[[1]],
-  #                          forecastingGroup = paste(usedMethods, collapse=","),currentError)
+
+  #using mase
+  minMase <- min(maseErrors)
+  if (!is.finite(minMase)){
+    # if mase does not work use mae
+    minIndex <- which.min(maeErrors)
+    minErr <- errors[[minIndex]]
+    minMethod <- methods[[minIndex]]
+  } else {
+    minIndex <- which.min(maseErrors)
+    minErr <- errors[[minIndex]]
+    minMethod <- methods[[minIndex]]
+  }
+  #minIndex <- which.min(maseErrors)
+  #minErr <- errors[[minIndex]]
+  #minMethod <- methods[[minIndex]]
+
 
   ForecastAndID <- cbind(product_id = ux[prodIDIndex],
-                         forecastingGroup = paste(usedMethods, collapse=","),
-                         currentError)
-  #print(ForecastAndID)
-  #ForecastAndID <- cbind(ForecastAndIDPre,forecastingGroup = minMethod)
+                         forecastingGroup = paste(minMethod, collapse=","),
+                         minErr)
+
   if (!is.null(forecastingGroupsErrorsWhole)){
     forecastingGroupsErrorsWhole <- rbind(forecastingGroupsErrorsWhole, ForecastAndID)
   } else {
