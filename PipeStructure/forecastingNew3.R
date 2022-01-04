@@ -202,7 +202,7 @@ for (prodIDIndex in 1:length(ux))
   iteratePredicts <- predicts
 
   # combination 2 methods
-  for (index in c(1:length(iterateMethods))){
+  for (index in c(1:(length(iterateMethods)-1))){
     for (index2 in c((index+1):length(iterateMethods))){
       method1 <- iterateMethods[index]
       method2 <- iterateMethods[index2]
@@ -210,10 +210,10 @@ for (prodIDIndex in 1:length(ux))
       predict2 <- iteratePredicts[index2]
       methods[[i]] <- paste(c(method1,method2),sep = ",")
       # direct combination
-      print(method1)
-      print(c(predict1[[1]]))
-      print(method2)
-      print(c(predict2[[1]]))
+      #print(method1)
+      #print(c(predict1[[1]]))
+      #print(method2)
+      #print(c(predict2[[1]]))
       combined.predict=(c(predict1[[1]]) + c(predict2[[1]]))/2
       predicts[[i]] <- combined.predict
       combined.err <- measures(as.matrix(prod_y_test$sales), combined.predict, as.matrix(prod_y_test$sales), benchmark = "naive")
