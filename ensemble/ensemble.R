@@ -11,7 +11,7 @@ library(caret) #Uniform modelling interface
 require(gbm)
 library(e1071)
 library("dplyr")
-library(glmnet)
+library(glmnet) #For elastic net -> regularization algorithm
 library(randomForest)
 library(rpart)
 # Miscellenaus
@@ -104,7 +104,7 @@ preds <- predict(object=test_model, testingData[,predictors])
 
 #This defines an ensamble model defined by method_list, and combined using ensembler_method
 #List of methods avaliavle in caret to ensemble
-model_list <- c("gbm", "rpart", "rf") #MODIFY
+model_list <- c("gbm", "rpart", "rf", "glm") #MODIFY
 #Ensembling method, trained on blend data
 ensembling_method <- "rf" #MODIFY
 
@@ -117,7 +117,38 @@ for(model in model_list){
 
 
 #Train and include non-avaliable methods to data
+
+# Elastic net
+elastic.fit <- train(ensembleData[,predictors], ensembleData[,labelName], method="glmnet", trControl=myControl)
+elastic.fit$finalModel$lambdaOpt
+elastic_coef <- coef(elastic.fit$finalModel, s =  elastic.fit$finalModel$lambdaOpt)
+regressors <- which(elastic_coef[-1]!= 0) # -1 to drop intercept term
+
+#In addition lets add elastic net as a forecasting algorithm
+model <- "elastic"
+blenderData[model] <- predict(object=elastic.fit, blenderData[,predictors])
+testingData[model] <- predict(object=elastic.fit, testingData[,predictors])
+
 #In a similar form train models using ensembleData, and record forecasts on blenderData and testingData
+# ARIMA
+model = "ARIMA"
+model_fit <- auto.arima(ensembleData[,labelName])
+blenderData[model] <- predict(object=model_fit, blenderData[,predictors])
+testingData[model] <- predict(object=model_fit, testingData[,predictors])
+
+
+#checkresiduals(model_fit) If arima erro plot is desired  
+
+# Dynamic regression
+model = "Dynamic"
+
+ncol(data.matrix(blenderData[,predictors][, regressors]))
+ncol(ensembleData[,predictors][, regressors])
+
+model_fit <- auto.arima(ensembleData[,labelName],
+                        xreg=data.matrix(ensembleData[,predictors][, regressors]))
+blenderData[model] <- predict(object=model_fit, data.matrix(blenderData[,predictors][, regressors]))
+testingData[model] <- predict(object=model_fit, testingData[,predictors][, regressors])
 
 
 #Train ensebling algorithm
@@ -156,4 +187,6 @@ computeMASE <- function(forecast,train,test,period){
 preds <- predict(object=final_blender_model, testingData[,predictors])
 training_sales_data <- c(ensembleData$sales,blenderData$sales)
 computeMASE(preds,training_sales_data,testingData$sales,test)
+
+
 
