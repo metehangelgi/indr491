@@ -2,6 +2,9 @@
 #It is heavily commented
 #If "MODIFY" clause is observer, it is safe to modify
 
+
+#install.packages("LogicReg")
+
 #Libraries
 library(readr)#To read data from csv
 # Training libraries
@@ -14,6 +17,7 @@ library("dplyr")
 library(glmnet) #For elastic net -> regularization algorithm
 library(randomForest)
 library(rpart)
+
 # Miscellenaus
 library(ggplot2)
 #Set seed for reproducibility
@@ -120,40 +124,40 @@ for(model in model_list){
 
 # Elastic net
 elastic.fit <- train(ensembleData[,predictors], ensembleData[,labelName], method="glmnet", trControl=myControl)
-elastic.fit$finalModel$lambdaOpt
 elastic_coef <- coef(elastic.fit$finalModel, s =  elastic.fit$finalModel$lambdaOpt)
 regressors <- which(elastic_coef[-1]!= 0) # -1 to drop intercept term
 
 #In addition lets add elastic net as a forecasting algorithm
 model <- "elastic"
+model_list <- c(model_list, model)
 blenderData[model] <- predict(object=elastic.fit, blenderData[,predictors])
 testingData[model] <- predict(object=elastic.fit, testingData[,predictors])
 
 #In a similar form train models using ensembleData, and record forecasts on blenderData and testingData
 # ARIMA
 model = "ARIMA"
+model_list <- c(model_list, model)
 model_fit <- auto.arima(ensembleData[,labelName])
-blenderData[model] <- predict(object=model_fit, blenderData[,predictors])
-testingData[model] <- predict(object=model_fit, testingData[,predictors])
-
+blenderData[model] <- forecast(object=model_fit, h=blend_size)$mean
+testingData[model] <- forecast(object=model_fit, h = test)$mean
 
 #checkresiduals(model_fit) If arima erro plot is desired  
 
 # Dynamic regression
-model = "Dynamic"
+model = "Dynamic" # MODIFY
+model_list <- c(model_list, model)
 
 ncol(data.matrix(blenderData[,predictors][, regressors]))
 ncol(ensembleData[,predictors][, regressors])
 
 model_fit <- auto.arima(ensembleData[,labelName],
-                        xreg=data.matrix(ensembleData[,predictors][, regressors]))
-blenderData[model] <- predict(object=model_fit, data.matrix(blenderData[,predictors][, regressors]))
-testingData[model] <- predict(object=model_fit, testingData[,predictors][, regressors])
+                        xreg = data.matrix(ensembleData[,predictors][, regressors])) #MODIFY
+blenderData[model] <- predict(object=model_fit, newxreg = data.matrix(blenderData[,predictors][, regressors]))$pred
+testingData[model] <- predict(object=model_fit, newxreg = data.matrix(testingData[,predictors][, regressors]))$pred
 
 
 #Train ensebling algorithm
-predictors <- model_list
-final_blender_model <- train(blenderData[,predictors], blenderData[,labelName], method=ensembling_method, trControl=controller)
+final_blender_model <- train(blenderData[,model_list], blenderData[,labelName], method=ensembling_method, trControl=controller)
 
 
 
@@ -182,11 +186,11 @@ computeMASE <- function(forecast,train,test,period){
   meanMASE <- mean(qt)
   return(meanMASE)
 }
+library("greybox")
 
-
-preds <- predict(object=final_blender_model, testingData[,predictors])
-training_sales_data <- c(ensembleData$sales,blenderData$sales)
-computeMASE(preds,training_sales_data,testingData$sales,test)
+preds <- predict(object=final_blender_model, newdata = testingData[,model_list])
+training_sales_data <- c(ensembleData$sales,blenderData$sales, testingData$sales)
+measures(testingData$sales, preds, training_sales_data, benchmark = "naive")
 
 
 
