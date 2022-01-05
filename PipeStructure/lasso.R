@@ -10,18 +10,26 @@ library(forecast)
 library(glmnet)
 
 Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
-   glmfit <- cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
-                       type.measure = "mse",family= "gaussian", alpha=1)
-   glmfit.prediction <-predict(glmfit, s = glmfit$lambda.1se, newx = as.matrix(prod_x_test))
 
-
-   glmfit.rmse <- mean((glmfit.prediction - as.matrix(prod_y_test))^2)
+   #glmfit <- cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
+   #                    type.measure = "mse",family= "gaussian", alpha=1)
+   #glmfit.prediction <-predict(glmfit, s = glmfit$lambda.1se, newx = as.matrix(prod_x_test))
+   
+   #glmfit.rmse <- mean((glmfit.prediction - as.matrix(prod_y_test))^2)
 
    #plot(glmfit)
 
    list.of.fits <- list()
    for (i in 0:10) {
       fit.name <- paste0("alpha", i/10)
+
+      # try catch
+      ElasticError <- tryCatch(
+      cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
+                type.measure = "mse",family= "gaussian", alpha=i/10))
+      if(inherits(ElasticError, "error")){
+         print(prod_y_train$sales)
+      }
       list.of.fits[[fit.name]] <-
       cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
                 type.measure = "mse",family= "gaussian", alpha=i/10)
@@ -46,16 +54,16 @@ Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
 
    #plot(list.of.fits[["alpha0.2"]])
 
-   elastic_coef <-  coef(list.of.fits[["alpha0.2"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
-   lasso_coef <- coef(glmfit, s = glmfit$lambda.1se)
+   elastic_coef <-  coef(list.of.fits[["alpha0.7"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
+   #lasso_coef <- coef(glmfit, s = glmfit$lambda.1se)
    #print(lasso_coef) # lasso outputları güzel değil
    #print(elastic_coef) # elasticte bişiler var
 
    # Bana bir ürün için LassoColumnValues olan bi vector döndür
    #numCols <- ncol(prod_x_train)
    #LassoColumnValues <- rep(NA, numCols) # NA yerine lasso feature değerleri gibi
-   newList <- list("Lasso" = lasso_coef, "Elastic" = elastic_coef)
-   return(newList)
+   #newList <- list("Lasso" = lasso_coef, "Elastic" = elastic_coef)
+   return(elastic_coef)
 }
 FeatureSelection <- function(xdata,ydata,prodIDs) {
    #mat<-matrix(list(), nrow=length(prodIDs), ncol=ncol(xdata))
@@ -76,20 +84,22 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       prod_x_train <- head(prod_x, round(nrow(prod_x) * 0.8))
       h <- nrow(prod_x) - nrow(prod_x_train)
       prod_x_test <- tail(prod_x, h)
-      #Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
-      newListOutputs<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
 
-      lassoProd <-newListOutputs$Lasso
-      lassoProd <-lassoProd[-1] #no idea first column?
-      elasticProd<-newListOutputs$Elastic
+      #newListOutputs<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
+
+      #lassoProd <-newListOutputs$Lasso
+      #lassoProd <-lassoProd[-1] #no idea first column?
+      #elasticProd<-newListOutputs$Elastic
+      #print(prod_y_train$sales)
+      elasticProd<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
       elasticProd<-elasticProd[-1] #no idea first column?
 
-      for (i in 1:(ncol(xdata)-1)){
-         if (lassoProd[i]!=0){
-            lassoProd[i]<-1
-         }
-         mat[[prodIDIndex,i]]<-lassoProd[i]
-      }
+      #for (i in 1:(ncol(xdata)-1)){
+      #   if (lassoProd[i]!=0){
+      #      lassoProd[i]<-1
+      #   }
+      #   mat[[prodIDIndex,i]]<-lassoProd[i]
+      #}
 
       for (i in 1:(ncol(xdata)-1)){
          if (elasticProd[i]!=0){
@@ -100,10 +110,10 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
 
    }
 
-   frame <- as.data.frame(mat)
-   colnames(frame) <- colnames(xdata)[-1]
-   frame["product_id"]=ux
-   frame2 <- frame %>% select("product_id", everything())
+   #frame <- as.data.frame(mat)
+   #colnames(frame) <- colnames(xdata)[-1]
+   #frame["product_id"]=ux
+   #frame2 <- frame %>% select("product_id", everything())
 
    frameElastic <- as.data.frame(matElastic)
    colnames(frameElastic) <- colnames(xdata)[-1]
@@ -112,8 +122,8 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
    #rownames(frame) <- ux
    #drop <- c("product_id")
    #frame = frame[,!(names(frame) %in% drop)]
-   newList <- list("Lasso" = frame2, "Elastic" = frameElastic2)
-   return(newList)
+   #newList <- list("Lasso" = frame2, "Elastic" = frameElastic2)
+   return(frameElastic2)
 }
 
 # Read data
@@ -131,20 +141,22 @@ xdata <- read_csv(inputx2)
 #ydata <- data.frame(ydataPre)
 
 # exclude brandid,gender,size
-patterns <- c("brand_ID_.*","size_.*","gender_.*")
+patterns <- c("size_.*","gender_.*")
 any_matching = Reduce(`|`, lapply(patterns, grepl, colnames(xdata)))
 resultX = colnames(xdata)[! any_matching]
 drop <- resultX
 xdata=xdata[,(names(xdata) %in% drop)]
 prodIDs=xdata[['product_id']]
-SelectionOutputs=FeatureSelection(xdata,ydata,prodIDs)
-LassoOutput<-SelectionOutputs$Lasso
-ElasticOutput<-SelectionOutputs$Elastic
-output <- c("featureSelection/new", numofSample,".csv")
+#SelectionOutputs=FeatureSelection(xdata,ydata,prodIDs)
+#LassoOutput<-SelectionOutputs$Lasso
+#ElasticOutput<-SelectionOutputs$Elastic
+ElasticOutput=FeatureSelection(xdata,ydata,prodIDs)
+
+#output <- c("featureSelection/new", numofSample,".csv")
 output0 <- c("featureSelection/newElastic", numofSample,".csv")
-output2 <- paste(output, collapse="")
+#output2 <- paste(output, collapse="")
 output02 <- paste(output0, collapse="")
-write.csv(LassoOutput,output2, row.names = FALSE)
+#write.csv(LassoOutput,output2, row.names = FALSE)
 write.csv(ElasticOutput,output02, row.names = FALSE)
 
 

@@ -19,4 +19,4 @@ def FeatureSelection(numberOfSample,rScript):
     folder = "featureSelection"
     DatabaseManage.createFolder(folder)
     #subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
-    subprocess.call([rScript, "--vanilla", "lasso.r",str(numberOfSample)])
+    subprocess.call([rScript, "--vanilla", "lasso.r" , str(numberOfSample)])

@@ -1,6 +1,7 @@
 import subprocess
 
 import Categorization
+import Clustering
 import Combination
 import Forecasting
 import Preprocessing
@@ -12,27 +13,33 @@ import FeatureCreation
 import FeatureSelection
 
 
-numberOfSample=5
+numberOfSample=30
 toCSVFile="new"
 rScript = "/usr/local/bin/Rscript"
 def main():
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess',rScript)
     laggedData = HandleProcess(data,numberOfSample, toCSVFile,'featureCreation',rScript)
+    HandleProcess(data, numberOfSample, toCSVFile, 'dataCategorization', rScript)
     HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection',rScript)
-    HandleProcess(data,numberOfSample,toCSVFile,'dataCategorization',rScript)
-    HandleProcess(data, numberOfSample, toCSVFile, 'forecasting',rScript)
+    #HandleProcess(data, numberOfSample, toCSVFile, 'clustering', rScript)
+    HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
 
 def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
+    data2 = None
+    if process=='clustering':
+        if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
+            Clustering.callR(numberOfSample, toCSVFile, rScript)
     if process=='dataCategorization':
-        categorizationType="ABC" # farklı şekilde handle edilebilir
-        if os.path.isfile('./' + process + '/' + toCSVFile +categorizationType+ str(numberOfSample) + ".csv"):
-            data2 = DatabaseManage.readData(process, toCSVFile +categorizationType+ str(numberOfSample))
-        else:
-            data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample,rScript)  # return null
-    elif process=='forecasting':
-        forecastingType = "ets"  # farklı şekilde handle edilecek
-        if os.path.isfile('./' + process + '/' + toCSVFile + forecastingType + str(numberOfSample) + ".csv"):
-            data2 = DatabaseManage.readData(process, toCSVFile + forecastingType + str(numberOfSample))
+        #categorizationTypes=["SBC","ABC"]
+        categorizationTypes = ["SBC"]
+        for categorizationType in categorizationTypes:
+            if not os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) +categorizationType+ ".csv"):
+                data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample,rScript)  # return null
+        #Categorization.combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample)
+    elif process=='forecast':
+        forecastingType = "forecastingNew"
+        if os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
+            data2 = DatabaseManage.readData(process, toCSVFile + str(numberOfSample))
         else:
             data2 = Forecasting.forecast(data, toCSVFile, forecastingType,
                                                       numberOfSample,rScript)  # return null
@@ -45,6 +52,7 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
             data2 = FeatureCreation.featureCreation(data, numberOfSample, toCSVFile)
         elif process=='featureSelection':
             data2 = FeatureSelection.FeatureSelection(numberOfSample,rScript) #return null
+
 
     return data2
 
