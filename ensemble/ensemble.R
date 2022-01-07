@@ -11,7 +11,7 @@ library(readr)#To read data from csv
 library(forecast)#Common forecasting functionality
 library(caret) #Uniform modelling interface
 
-require(gbm)
+require(gbm)#gradient boosting
 library(e1071)
 library("dplyr")
 library(glmnet) #For elastic net -> regularization algorithm
@@ -147,8 +147,7 @@ testingData[model] <- forecast(object=model_fit, h = test)$mean
 model = "Dynamic" # MODIFY
 model_list <- c(model_list, model)
 
-ncol(data.matrix(blenderData[,predictors][, regressors]))
-ncol(ensembleData[,predictors][, regressors])
+
 
 model_fit <- auto.arima(ensembleData[,labelName],
                         xreg = data.matrix(ensembleData[,predictors][, regressors])) #MODIFY
