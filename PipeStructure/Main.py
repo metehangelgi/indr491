@@ -13,16 +13,24 @@ import FeatureCreation
 import FeatureSelection
 
 
-numberOfSample=30
+numberOfSample=20
 toCSVFile="new"
 rScript = "/usr/local/bin/Rscript"
 def main():
+    print("PREPROCESS")
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess',rScript)
+    print("FEARTURE CREATION")
     laggedData = HandleProcess(data,numberOfSample, toCSVFile,'featureCreation',rScript)
+    print("DATA CATEGORIZATION")
     HandleProcess(data, numberOfSample, toCSVFile, 'dataCategorization', rScript)
+    print("FEARTURE SELECTION")
     HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection',rScript)
     #HandleProcess(data, numberOfSample, toCSVFile, 'clustering', rScript)
+    print("FORECAST")
     HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
+    print("ENSEMBLE FORECAST")
+    HandleProcess(data, numberOfSample, toCSVFile, 'forecast2', rScript)
+
 
 def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
     data2 = None
@@ -43,6 +51,8 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
         else:
             data2 = Forecasting.forecast(data, toCSVFile, forecastingType,
                                                       numberOfSample,rScript)  # return null
+    elif process == 'forecast2':
+        data2 = Forecasting.forecast2(data, toCSVFile, numberOfSample, rScript)  # return null
     elif os.path.isfile('./'+process+'/'+toCSVFile+str(numberOfSample)+".csv"):
         data2 = DatabaseManage.readData(process,toCSVFile+str(numberOfSample))
     else:
