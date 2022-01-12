@@ -13,7 +13,7 @@ import FeatureCreation
 import FeatureSelection
 
 
-numberOfSample=20
+numberOfSample=25
 toCSVFile="new"
 rScript = "/usr/local/bin/Rscript"
 def main():
@@ -27,7 +27,7 @@ def main():
     HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection',rScript)
     #HandleProcess(data, numberOfSample, toCSVFile, 'clustering', rScript)
     print("FORECAST")
-    HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
+    #HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
     print("ENSEMBLE FORECAST")
     HandleProcess(data, numberOfSample, toCSVFile, 'forecast2', rScript)
 

@@ -153,7 +153,7 @@ prodIDs=xdata[['product_id']]
 ElasticOutput=FeatureSelection(xdata,ydata,prodIDs)
 
 #output <- c("featureSelection/new", numofSample,".csv")
-output0 <- c("featureSelection/newElastic", numofSample,".csv")
+output0 <- c("featureSelection/new", numofSample,".csv")
 #output2 <- paste(output, collapse="")
 output02 <- paste(output0, collapse="")
 #write.csv(LassoOutput,output2, row.names = FALSE)
