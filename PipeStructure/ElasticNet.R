@@ -9,7 +9,7 @@ library(readr)
 library(forecast)
 library(glmnet)
 
-Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
+ElasticNet <- function (prod_y_train, prod_y_test, prod_x_train, prod_x_test){
 
    #glmfit <- cv.glmnet(as.matrix(prod_x_train), y=prod_y_train$sales,
    #                    type.measure = "mse",family= "gaussian", alpha=1)
@@ -65,6 +65,7 @@ Lasso <- function (prod_y_train,prod_y_test,prod_x_train,prod_x_test){
    #newList <- list("Lasso" = lasso_coef, "Elastic" = elastic_coef)
    return(elastic_coef)
 }
+
 FeatureSelection <- function(xdata,ydata,prodIDs) {
    #mat<-matrix(list(), nrow=length(prodIDs), ncol=ncol(xdata))
    ux <- unique(prodIDs)
@@ -91,7 +92,7 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       #lassoProd <-lassoProd[-1] #no idea first column?
       #elasticProd<-newListOutputs$Elastic
       #print(prod_y_train$sales)
-      elasticProd<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
+      elasticProd<-ElasticNet(prod_y_train, prod_y_test, prod_x_train, prod_x_test)
       elasticProd<-elasticProd[-1] #no idea first column?
 
       #for (i in 1:(ncol(xdata)-1)){

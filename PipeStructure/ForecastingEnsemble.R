@@ -100,7 +100,6 @@ is.rankdeficient <- function(xregg) {
 results <- NULL
 for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
 # for(id in 1:3){ # worked sample for me
-  print(id)
   df_prod <- df[df$product_id == ids[id],] ## product y data
   df_prod <- subset(df_prod, select = -c(product_id))
   elastic_coef <- filter(elastic_coefs, product_id == ids[id])[, -1]
@@ -143,7 +142,7 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
 
 
   # Define  training control, one for caret, another for non-caret usage for individual model training
-  number_of_splits <- 7 #MODİFY -> number of train,test pairs
+  number_of_splits <- 7 #MODIFY -> number of train,test pairs
 
 
   myControl <- trainControl(method = "timeslice",

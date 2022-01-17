@@ -2,7 +2,6 @@ import subprocess
 
 import Categorization
 import Clustering
-import Combination
 import Forecasting
 import Preprocessing
 import Sample
@@ -45,7 +44,7 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
                 data2 = Categorization.dataCategorization(data, toCSVFile, categorizationType, numberOfSample,rScript)  # return null
         #Categorization.combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample)
     elif process=='forecast':
-        forecastingType = "forecastingNew"
+        forecastingType = "forecasting"
         if os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
             data2 = DatabaseManage.readData(process, toCSVFile + str(numberOfSample))
         else:
