@@ -108,6 +108,10 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
 
   df_prod<-cbind(subset(df_prod, select = c(sales)), (df_prod[-1])[,regressors])
 
+
+  #categorize of prod
+  dataCategorizes.selected <- dataCategorizes[dataCategorizes$product_id == ids[id],] ##
+  categorizationName <- dataCategorizes.selected$demand_cate[1]
   # Partition data for training, blending and testing purposes
   # Assuming that all data is of same size
   train_size <- 150 #MODIFY
@@ -265,6 +269,7 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
   #print(ms_train)
 
   ForecastAndID <- cbind(product_id = ids[id],
+                         categorization = categorizationName,
                          forecastingGroup = paste(names_of_bests, collapse=","),
                          t(as.data.frame(ms)))
 
