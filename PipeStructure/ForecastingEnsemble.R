@@ -73,7 +73,7 @@ ids <- unique(ydata$product_id)
 #for writing results to the csv file
 writeCSV <- function (final_data,numofSample){
   #ABCtype,SBCtype,clustering will be added later
-  output <- c("forecast/new", numofSample,".csv")
+  output <- c("forecast/newEnsemble", numofSample,".csv")
   output2 <- paste(output, collapse="")
   write.csv(final_data,output2, row.names = FALSE)
 }
@@ -100,16 +100,13 @@ is.rankdeficient <- function(xregg) {
 results <- NULL
 for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
 # for(id in 1:3){ # worked sample for me
+  print(id)
   df_prod <- df[df$product_id == ids[id],] ## product y data
   df_prod <- subset(df_prod, select = -c(product_id))
   elastic_coef <- filter(elastic_coefs, product_id == ids[id])[, -1]
   regressors <- which((elastic_coef)[-1]!= 0)
 
   df_prod<-cbind(subset(df_prod, select = c(sales)), (df_prod[-1])[,regressors])
-
-  #categorize of prod
-  dataCategorizes.selected <- dataCategorizes[dataCategorizes$product_id == ids[id],] ##
-  categorizationName <- dataCategorizes.selected$demand_cate[1]
 
   # Partition data for training, blending and testing purposes
   # Assuming that all data is of same size
@@ -118,17 +115,21 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
   test <- 27        #MODIFY
 
   #train_size + blend_size + test == data_size #Ensure using all data
+
   #Set to preferred value
   testing_horizon <- 1 #MODIFY
-
 
   # Use to remove linear dependence
   comboInfo <- findLinearCombos(subset(df_prod, select = -c(sales)))
   df_prod <- df_prod[, -comboInfo$remove]
 
-  # descrCor <-  cor(subset(df_prod, select = -c(sales)))
+  # Remove highly correlated features
+  # This part can be removed, if a feature selection algorithm is provided
+  # However since I dont implement such a thing act acordingly
+  #MODIFY
+  # descrCor <-  cor(df_prod)
   # highlyCorDescr <- findCorrelation(descrCor, cutoff = .75)
-  # df_prod <- cbind(subset(df_prod, select = c(sales)), subset(df_prod, select = -c(sales))[,-highlyCorDescr])
+  # df_prod <- df_prod[,-highlyCorDescr]
 
 
   # Parition data
@@ -142,7 +143,7 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
 
 
   # Define  training control, one for caret, another for non-caret usage for individual model training
-  number_of_splits <- 7 #MODIFY -> number of train,test pairs
+  number_of_splits <- 4 #MODİFY -> number of train,test pairs
 
 
   myControl <- trainControl(method = "timeslice",
@@ -169,29 +170,24 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
                              fixedWindow = FALSE)
 
 
-  #This defines an ensamble model defined by method_list, and combined using ensembler_method
-  #List of methods avaliavle in caret to ensemble
-  #Ensembling method, trained on blend data
 
+  #Ensembling method, trained on blend data
   usedMethods <- c("xgbTree", "gbm", "rf","svmRadial", "svmLinear", "svmPoly")
   ensembling_method <- "rf" #MODIFY
-
-
   for(model in usedMethods){
     print(model)
-    model_fit <- train(ensembleData[,predictors], ensembleData[,labelName], method=model, trControl=myControl, verbose = FALSE, metric = "MAE")
+    model_fit <- train(ensembleData[,predictors], ensembleData[,labelName], method=model, trControl=myControl, verbose = FALSE)
     #ensembleData[model] <- predict(object=model_fit, ensembleData[,predictors])
     blenderData[model] <- predict(object=model_fit, blenderData[,predictors])
     testingData[model] <- predict(object=model_fit, testingData[,predictors])
   }
 
-
-
   #Train and include non-avaliable methods to data
 
-  # Elastic net
+  #Elastic net
   elastic.fit <- train(ensembleData[,predictors], ensembleData[,labelName], method="glmnet", trControl=myControl)
   elastic_coef <- coef(elastic.fit$finalModel, s =  elastic.fit$finalModel$lambdaOpt)
+  regressors <- which(elastic_coef[-1]!= 0) # -1 to drop intercept term
 
 
   #In addition lets add elastic net as a forecasting algorithm
@@ -237,54 +233,40 @@ for(id in c(1:length(ids))){ # should use this one(stuck in infinity loop?)
   blenderData[model] <- tsb(ensembleData[,labelName], h=blend_size, init.opt = TRUE)$frc.out
   testingData[model] <- tsb(ensembleData[,labelName], h=test, init.opt = TRUE)$frc.out
 
-  if(!is.rankdeficient(ensembleData[,predictors])){
-    #Dynamic regression
-    model = "Dynamic" # MODIFY
-    usedMethods <- c(usedMethods, model)
+  #res <- as.data.frame(testingData$svmRadial)
+  #write.csv(res,"res.csv", row.names = FALSE)
 
-    ncol(data.matrix(blenderData[,predictors]))
-    ncol(ensembleData[,predictors])
+  #Dynamic regression
+  # if(!is.rankdeficient(ensembleData[,predictors])){
+  #   #Dynamic regression
+  #   model = "Dynamic" # MODIFY
+  #   usedMethods <- c(usedMethods, model)
+  #
+  #   ncol(data.matrix(blenderData[,predictors]))
+  #   ncol(ensembleData[,predictors])
+  #   {
+  #
+  # }
 
-    model_fit <- auto.arima(ensembleData[,labelName],
-                            xreg = data.matrix(ensembleData[,predictors])) #MODIFY
-    blenderData[model] <- predict(object=model_fit, newxreg = data.matrix(blenderData[,predictors]))$pred
-    testingData[model] <- predict(object=model_fit, newxreg = data.matrix(testingData[,predictors]))$pred
-  }
-
-  mases <- list()
-  for(mod in usedMethods){
-    ms <- measures(testingData$sales, testingData[[mod]], testingData$sales, benchmark = "naive")
-    mases <- c(mases, as.data.frame(ms)$ms[9])
-  }
 
   #Train ensebling algorithm
   final_blender_model <- train(blenderData[,usedMethods], blenderData[,labelName], method=ensembling_method, trControl=controller)
-  #ml_only_blend <- train(blenderData[,ml_usedMethods], blenderData[,labelName], method=ensembling_method, trControl=controller)
-
-
-  preds <- predict(object=final_blender_model, newdata = testingData[,usedMethods])
-  ms <- measures(testingData$sales, preds, testingData$sales, benchmark = "naive")
-  usedMethods <- c(usedMethods, "ensembled")
-  mases <- c(mases, as.data.frame(ms)$ms[9])
-
+  #ml_only_blend <- train(blenderData[,ml_model_list], blenderData[,labelName], method=ensembling_method, trControl=controller)
   purity <- as.data.frame(final_blender_model$finalModel$importance)
-  best_ones <- whichpart(purity$IncNodePurity, 4)
+  best_ones <- whichpart(purity$IncNodePurity, 3)
   names_of_bests <- rownames(purity)[best_ones]
 
-  best <- usedMethods[which.min(mases)]
+  preds <- predict(object=final_blender_model, newdata = testingData[,usedMethods])
+  #training_sales_data <- c(ensembleData$sales,blenderData$sales, testingData$sales)
+  ms <- measures(testingData$sales, preds, testingData$sales, benchmark = "naive")
+  #preds <- predict(object=ml_only_blend, newdata = ensembleData[,ml_model_list])
+  #ms_train <- (measures(ensembleData$sales, preds, ensembleData$sales, benchmark = "naive"))
+  print(ms)
+  #print(ms_train)
 
-  if(best == "ensembled"){
-    ForecastAndID <- cbind(product_id = ids[id],
-                           categorization = categorizationName,
-                           forecastingType = paste(names_of_bests, collapse = ","),
-                           t(as.data.frame(measures(testingData$sales, preds, testingData$sales, benchmark = "naive"))))
-  }else{
-    ForecastAndID <- cbind(product_id = ids[id],
-                           categorization = categorizationName,
-                           forecastingType = paste(best),
-                           t(as.data.frame(measures(testingData$sales, testingData[[best]], testingData$sales, benchmark = "naive"))))
-  }
-
+  ForecastAndID <- cbind(product_id = ids[id],
+                         forecastingGroup = paste(names_of_bests, collapse=","),
+                         t(as.data.frame(ms)))
 
   if (!is.null(results)){
     results <- rbind(results, ForecastAndID)

@@ -36,7 +36,7 @@ inputx <- c("featureCreation/new", numofSample,".csv")
 inputx2 <- paste(inputx, collapse="")
 #inputLasso<-c("featureSelection/new", numofSample,".csv")
 #inputLasso2 <- paste(inputLasso, collapse="")
-inputElastic<-c("featureSelection/newElastic", numofSample,".csv")
+inputElastic<-c("featureSelection/new", numofSample,".csv")
 inputElastic2 <- paste(inputElastic, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
@@ -46,7 +46,6 @@ elastic_coefs <- read_csv(inputElastic2)
 #clusteredInput <- c("clustering/new", numofSample,".csv")
 #clusteredInput2 <- paste(clusteredInput, collapse="")
 #clusteredData <- read_csv(clusteredInput2)
-
 
 # exclude brandid,gender,size
 patterns <- c("brand_ID_.*","size_.*","gender_.*")
@@ -60,7 +59,7 @@ ux <- unique(prodIDs)
 forecastingGroupsErrorsWhole <- NULL
 for (prodIDIndex in 1:length(ux))
   {
-
+  print(prodIDIndex)
   #lasso_coef <- filter(lasso_coefs, product_id == ux[prodIDIndex])[, -1] ## lasso
   elastic_coef <- filter(elastic_coefs, product_id == ux[prodIDIndex])[, -1] ## elastic
   prod_x <- filter(xdata, product_id == ux[prodIDIndex])[, -1] ## product x data

@@ -48,10 +48,10 @@ def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):
         if os.path.isfile('./' + process + '/' + toCSVFile + str(numberOfSample) + ".csv"):
             data2 = DatabaseManage.readData(process, toCSVFile + str(numberOfSample))
         else:
-            data2 = Forecasting.forecast(data, toCSVFile, forecastingType,
+            data2 = Forecasting.forecast(forecastingType,
                                                       numberOfSample,rScript)  # return null
     elif process == 'forecast2':
-        data2 = Forecasting.forecast2(data, toCSVFile, numberOfSample, rScript)  # return null
+        data2 = Forecasting.forecast2(numberOfSample, rScript)  # return null
     elif os.path.isfile('./'+process+'/'+toCSVFile+str(numberOfSample)+".csv"):
         data2 = DatabaseManage.readData(process,toCSVFile+str(numberOfSample))
     else:
