@@ -9,7 +9,7 @@ def readInitialData(datafile):
     return new_dict
 
 def readData(path,datafile):
-    return pd.read_csv('./'+path+'/'+datafile+".csv")
+    return pd.read_csv('./'+path+'/'+datafile+".csv", encoding='utf-8')
 
 def initializing():
     salesData = "TY_Koc_Sales.pkl"

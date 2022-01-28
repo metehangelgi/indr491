@@ -67,6 +67,8 @@ def doProcess(datas,dates,numberofSamples,productIDs):
 
         if len(datasID["price"]) == 0: # if has no price value
             continue  # discard given productID
+        if 0 in datasID["price"]:
+            continue
 
         OverallProd = []
 
@@ -187,10 +189,10 @@ def saveCSV(fName,Overall,Overall2):
     DatabaseManage.createFolder(folder)
     filename="preProcess/"+fName+"PRE.csv"
     filename2 = "preProcess/" + fName + "LessSales.csv"
-    with open(filename,"w+") as my_csv:
+    with open(filename,"w+", encoding= 'utf-8') as my_csv:
         csvWriter = csv.writer(my_csv,delimiter=',')
         csvWriter.writerows(Overall)
-    with open(filename2,"w+") as my_csv2:
+    with open(filename2,"w+", encoding= 'utf-8') as my_csv2:
         csvWriter = csv.writer(my_csv2,delimiter=',')
         csvWriter.writerows(Overall2)
 

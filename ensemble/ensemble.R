@@ -8,9 +8,9 @@
 #Libraries
 library(readr)#To read data from csv
 # Training libraries
-library(RSNNS)
 library(forecast)#Common forecasting functionality
 library(caret) #Uniform modelling interface
+require(xgboost)
 
 library(kernlab)
 library(gbm)
@@ -25,49 +25,96 @@ library("greybox")
 # Miscellenaus
 library(ggplot2)
 #Set seed for reproducibility
-set.seed(1)
+set.seed(11)
 
 # Read data here
 # Change data path for x and y acordingly
 
-inputy <- c("featureCreation/new50Y.csv")
+inputy <- c("new100Y.csv")
 inputy2 <- paste(inputy, collapse="")
-inputx <- c("featureCreation/new50.csv")
+inputx <- c("new100.csv")
 inputx2 <- paste(inputx, collapse="")
-inputElastic<-c("featureSelection/newElastic50.csv")
+inputElastic<-c("newElastic100.csv")
 inputElastic2 <- paste(inputElastic, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
 elastic_coefs <- read_csv(inputElastic2)
-df <- cbind(ydata, xdata)
+
+inputSBC<-c("new100SBC.csv")
+inputSBC2 <- paste(inputSBC, collapse="")
+dataCategorizes <- read_csv(inputSBC2)
+
+inputPandemic <- c("usd_and_pandemic.csv")
+inputPandemic2 <- paste(inputPandemic, collapse="")
+pandemic <- read_csv(inputPandemic2)
 
 require(doParallel)
-c1<- makePSOCKcluster(8)
+c1<- makePSOCKcluster(12)
 registerDoParallel(c1)
 # FOR LOOP entry point, for simplicity I focused on single product
 # However, since following code will depend on id, this can be easilty enveloped in a foor loop
+patterns <- c("brand_ID_.*","size_.*","gender_.*")
+any_matching = Reduce(`|`, lapply(patterns, grepl, colnames(xdata)))
+resultX = colnames(xdata)[! any_matching]
+drop <- resultX
+xdata<-xdata[,(names(xdata) %in% drop)]
+
+xdata <- subset(xdata, select = -c(product_id))
+
+df <- cbind(ydata, xdata)
+
 ids <- unique(ydata$product_id)
-mase_sum = 0
-for(id in 9:12){
+
+writeCSV <- function (final_data,numofSample){
+  #ABCtype,SBCtype,clustering will be added later
+  output00 <- c("newE-RF.csv")
+  output002 <- paste(output00, collapse="")
+  write.csv(final_data,output002, row.names = FALSE)
+}
+
+whichpart <- function(x, n) {
+  nx <- length(x)
+  p <- nx-n
+  xp <- sort(x, partial=p)[p]
+  which(x > xp)
+}
+
+is.rankdeficient <- function(xregg) {
+  constant_columns <- apply(xregg, 2, is.constant)
+  if (any(constant_columns)) {
+    xregg <- xregg[, -which(constant_columns)[1]]
+  }
+  sv <- svd(na.omit(cbind(rep(1, NROW(xregg)), xregg)))$d
+  min(sv)/sum(sv) < .Machine$double.eps
+}
+
+results <- NULL
+
+for(id in 54:length(ids)){
   print(id)
-  df_prod <- df[df$product_id == ydata$product_id[id],] ## product y data
-  data_size <- nrow(df_prod)
+  df_prod <- df[df$product_id == ids[id],] ## product y data
+  df_prod <- subset(df_prod, select = -c(product_id))
+  elastic_coef <- filter(elastic_coefs, product_id == ids[id])[, -1]
+  regressors <- which((elastic_coef)[-1]!= 0)
+  
+  df_prod<-cbind(subset(df_prod, select = c(sales)), (df_prod[-1])[,regressors])
+  
+  df_prod$`USD/TL` <- pandemic$`USD/TL`
+  df_prod$Cases <- pandemic$Cases
+  
+  #categorize of prod
+  dataCategorizes.selected <- dataCategorizes[dataCategorizes$product_id == ids[id],] ##
+  categorizationName <- dataCategorizes.selected$demand_cate[1]
   
   # Partition data for training, blending and testing purposes
   # Assuming that all data is of same size
-  train_size <- 110 #MODIFY
-  blend_size <- 40  #MODIFY
+  train_size <- 150 #MODIFY
   test <- 27        #MODIFY
   
-  train_size + blend_size + test == data_size #Ensure using all data
+  #train_size + blend_size + test == data_size #Ensure using all data
   
   #Set to preferred value
-  testing_horizon <- 7 #MODIFY
-  
-  
-  # Some preprocessing, since they are not handled in initial preprocessing step
-  df_prod <- subset(df_prod, select = -c(product_id))
-  df_prod <- subset(df_prod, select = -c(product_id))
+  testing_horizon <- 1 #MODIFY
   
   # Use to remove linear dependence
   comboInfo <- findLinearCombos(subset(df_prod, select = -c(sales)))
@@ -82,18 +129,18 @@ for(id in 9:12){
   # df_prod <- df_prod[,-highlyCorDescr]
   
   
-  
   # Parition data
   ensembleData <- df_prod[1:train_size,] # Will be used to train individual models
-  blenderData <- df_prod[(train_size+1):(train_size+blend_size),] # Will be used to train ensembling model
-  testingData <- df_prod[(train_size+blend_size+1):data_size,] # Will be used to test overall model performance
+  testingData <- df_prod[(train_size+1):177,] # Will be used to test overall model performance
   
   labelName <- "sales" # Name of the predictor variable
   # Modify acordingly to capture irrelevant features such as product id
   predictors <- names(ensembleData)[names(ensembleData) != c(labelName)] #MODIFY
   
+  
   # Define  training control, one for caret, another for non-caret usage for individual model training
-  number_of_splits <- 7 #MODİFY -> number of train,test pairs
+  number_of_splits <- 4 #MODİFY -> number of train,test pairs
+  
   
   myControl <- trainControl(method = "timeslice",
                             initialWindow = train_size - number_of_splits*testing_horizon,
@@ -105,146 +152,119 @@ for(id in 9:12){
                           horizon = testing_horizon,
                           skip = testing_horizon -1,
                           fixedWindow = FALSE)
+  
+  
   trainSlices <- idx[[1]]
   testSlices <- idx[[2]]
   
   # Additional controller to ensemble the models
   #MODIFY acordingly
   controller <- trainControl(method = "timeslice",
-                             initialWindow = blend_size - 1,
+                             initialWindow = train_size - 1,
                              horizon = 1,
                              skip = 0,
                              fixedWindow = FALSE)
   
-  #test_model <- train(sales ~ .,data = blenderData, method='gbm', trControl=controller)
-  #preds <- predict(object=test_model, testingData[,predictors])
-  #err <- measures(as.matrix(testingData$sales), test_model, as.matrix(testingData$sales), benchmark = "naive")
   
-  #This defines an ensamble model defined by method_list, and combined using ensembler_method
-  #List of methods avaliavle in caret to ensemble
-  model_list <- c("gbm", "rpart", "rf", "glm","svmRadial", "svmLinear") #MODIFY
+  
   #Ensembling method, trained on blend data
+  usedMethods <- c("xgbTree", "gbm", "rf","svmRadial")
   ensembling_method <- "rf" #MODIFY
-  
-  for(model in model_list){
+  for(model in usedMethods){
     print(model)
-    model_fit <- train(ensembleData[,predictors], ensembleData[,labelName], method=model, trControl=myControl)
-    blenderData[model] <- predict(object=model_fit, blenderData[,predictors])
+    model_fit <- train(ensembleData[,predictors], ensembleData[,labelName], method=model, trControl=myControl, verbose = FALSE)
+    ensembleData[model] <- predict(object=model_fit, ensembleData[,predictors])
     testingData[model] <- predict(object=model_fit, testingData[,predictors])
   }
   
-  
-  
   #Train and include non-avaliable methods to data
   
-  # Elastic net
+  #Elastic net
   elastic.fit <- train(ensembleData[,predictors], ensembleData[,labelName], method="glmnet", trControl=myControl)
   elastic_coef <- coef(elastic.fit$finalModel, s =  elastic.fit$finalModel$lambdaOpt)
   regressors <- which(elastic_coef[-1]!= 0) # -1 to drop intercept term
-  
+
+
   #In addition lets add elastic net as a forecasting algorithm
-  model <- "elastic"
-  model_list <- c(model_list, model)
-  blenderData[model] <- predict(object=elastic.fit, blenderData[,predictors])
+  model <- "glmnet"
+  usedMethods <- c(usedMethods, model)
+  #ensembleData[model] <- predict(object=model_fit, ensembleData[,predictors])
+  ensembleData[model] <- predict(object=elastic.fit, ensembleData[,predictors])
   testingData[model] <- predict(object=elastic.fit, testingData[,predictors])
   
-  #In a similar form train models using ensembleData, and record forecasts on blenderData and testingData
-  # ARIMA
-  # model = "ARIMA"
-  # model_list <- c(model_list, model)
-  # model_fit <- auto.arima(ensembleData[,labelName])
-  # blenderData[model] <- forecast(object=model_fit, h=blend_size)$mean
-  # testingData[model] <- forecast(object=model_fit, h = test)$mean
-  
-  
-  #checkresiduals(model_fit) If arima erro plot is desired
   
   #ETS
   model = "ETS"
-  model_list <- c(model_list, model)
+  usedMethods <- c(usedMethods, model)
   model_fit <- ets(as.vector(ensembleData[,labelName]))
-  blenderData[model] <- as.data.frame(forecast(object=model_fit, h=blend_size))[["Point Forecast"]]
+  ensembleData[model] <- as.data.frame(forecast(object=model_fit, h=train_size))[["Point Forecast"]]
   testingData[model] <- as.data.frame(forecast(object=model_fit, h=test))[["Point Forecast"]]
-  
+
   #Naive forecast
   model <- "naive"
-  model_list <- c(model_list, model)
-  blenderData[model] <- c(ensembleData[nrow(ensembleData),labelName],blenderData[-nrow(blenderData),labelName])
-  testingData[model] <- c(blenderData[nrow(blenderData),labelName],testingData[-nrow(testingData),labelName])
-  
+  usedMethods <- c(usedMethods, model)
+  ensembleData[model] <- c(ensembleData[nrow(ensembleData),labelName],ensembleData[-nrow(ensembleData),labelName])
+  testingData[model] <- c(ensembleData[nrow(ensembleData),labelName],testingData[-nrow(testingData),labelName])
+
   #Croston's
   model = "Croston"
-  model_list <- c(model_list, model)
-  blenderData[model] <- as.data.frame(crost(ensembleData[,labelName], h=blend_size, 
+  usedMethods <- c(usedMethods, model)
+  ensembleData[model] <- as.data.frame(crost(ensembleData[,labelName], h=train_size,
                                             w=NULL, cost='mae', init.opt = TRUE)$components$c.out)$Demand
-  testingData[model] <- as.data.frame(crost(ensembleData[,labelName], h=test, 
+  testingData[model] <- as.data.frame(crost(ensembleData[,labelName], h=test,
                                             w=NULL, cost='mae', init.opt = TRUE)$components$c.out)$Demand
-  
+
   #SBA
   model = "SBA"
-  model_list <- c(model_list, model)
-  blenderData[model] <- as.data.frame(crost(ensembleData[,labelName], h=blend_size, type = "sba", 
+  usedMethods <- c(usedMethods, model)
+  ensembleData[model] <- as.data.frame(crost(ensembleData[,labelName], h=train_size, type = "sba",
                                             w=NULL, cost='mae', init.opt = TRUE)$components$c.out)$Demand
   testingData[model] <- as.data.frame(crost(ensembleData[,labelName], h=test, type = "sba",
                                             w=NULL, cost='mae', init.opt = TRUE)$components$c.out)$Demand
-  
+
   #TSB
   model = "TSB"
-  model_list <- c(model_list, model)
-  blenderData[model] <- tsb(ensembleData[,labelName], h=blend_size, init.opt = TRUE)$frc.out
+  usedMethods <- c(usedMethods, model)
+  ensembleData[model] <- tsb(ensembleData[,labelName], h=train_size, init.opt = TRUE)$frc.out
   testingData[model] <- tsb(ensembleData[,labelName], h=test, init.opt = TRUE)$frc.out
   
-  
-  # Dynamic regression
-  model = "Dynamic" # MODIFY
-  model_list <- c(model_list, model)
-  
-  ncol(data.matrix(blenderData[,predictors][, regressors]))
-  ncol(ensembleData[,predictors][, regressors])
-  
-  model_fit <- auto.arima(ensembleData[,labelName],
-                          xreg = data.matrix(ensembleData[,predictors][, regressors])) #MODIFY
-  blenderData[model] <- predict(object=model_fit, newxreg = data.matrix(blenderData[,predictors][, regressors]))$pred
-  testingData[model] <- predict(object=model_fit, newxreg = data.matrix(testingData[,predictors][, regressors]))$pred
+
   
   #Train ensebling algorithm
-  final_blender_model <- train(subset(blenderData, select = c(model_list)), blenderData[,labelName], method=ensembling_method, trControl=controller)
+  final_blender_model <- train(ensembleData[,usedMethods], ensembleData[,labelName], method=ensembling_method, trControl=controller)
+  #ml_only_blend <- train(blenderData[,ml_model_list], blenderData[,labelName], method=ensembling_method, trControl=controller)
+  purity <- as.data.frame(final_blender_model$finalModel$importance)
+  best_ones <- whichpart(purity$IncNodePurity, 3)
+  names_of_bests <- rownames(purity)[best_ones]
+
   
+
+  preds <- predict(object=final_blender_model, newdata = testingData[,usedMethods])
+  #training_sales_data <- c(ensembleData$sales,blenderData$sales, testingData$sales)
+  ms <- measures(testingData$sales, preds, testingData$sales, benchmark = "naive")
   
-  
-  
-  
-  #Test on testing data
-  
-  # Mase function if necessary
-  # Mase function
-  # computeMASE <- function(forecast,train,test,period){
-  #   
-  #   # forecast - forecasted values
-  #   # train - data used for forecasting .. used to find scaling factor
-  #   # test - actual data used for finding MASE.. same length as forecast
-  #   # period - in case of seasonal data.. if not, use 1
-  #   
-  #   forecast <- as.vector(forecast)
-  #   train <- as.vector(train)
-  #   test <- as.vector(test)
-  #   
-  #   n <- length(train)
-  #   scalingFactor <- sum(abs(train[(period+1):n] - train[1:(n-period)])) / (n-period)
-  #   
-  #   et <- abs(test-forecast)
-  #   qt <- et/scalingFactor
-  #   meanMASE <- mean(qt)
-  #   return(meanMASE)
-  # }
-  
-  preds <- predict(object=final_blender_model, newdata = testingData[,model_list])
-  training_sales_data <- c(ensembleData$sales,blenderData$sales, testingData$sales)
-  ms <- (measures(testingData$sales, preds, training_sales_data, benchmark = "naive"))
-  mase_sum = mase_sum + as.data.frame(ms)$ms[9]        
+  ForecastAndID <- cbind(product_id = ids[id],
+                         categorization = categorizationName,
+                         forecastingGroup = paste("E-Rf", collapse=","),
+                         t(as.data.frame(ms)))
+
+  if (!is.null(results)){
+    results <- rbind(results, ForecastAndID)
+  } else {
+    results <- ForecastAndID
+  }
 }
 
 stopCluster(c1)
 
+writeCSV(results, 1)
 
-mase_sum/4
+
+# testingData <- data.frame(cbind(testingData$xgbLinear, date =1:nrow(testingData$xgbLinear)))
+# 
+# p <- ggplot(testingData$xgbLinear, aes(x = date,y=sales)) +
+#   geom_line()
+# p
+# 
+# testingData$xgbLinear
+

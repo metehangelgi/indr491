@@ -12,9 +12,9 @@ import FeatureCreation
 import FeatureSelection
 
 
-numberOfSample=25
+numberOfSample=100
 toCSVFile="new"
-rScript = "/usr/local/bin/Rscript"
+rScript = "C:/Program Files/R/R-4.1.2/bin/x64/Rscript.exe"
 def main():
     print("PREPROCESS")
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess',rScript)

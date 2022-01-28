@@ -54,7 +54,7 @@ ElasticNet <- function (prod_y_train, prod_y_test, prod_x_train, prod_x_test){
 
    #plot(list.of.fits[["alpha0.2"]])
 
-   elastic_coef <-  coef(list.of.fits[["alpha0.7"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
+   elastic_coef <-  coef(list.of.fits[["alpha0.6"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
    #lasso_coef <- coef(glmfit, s = glmfit$lambda.1se)
    #print(lasso_coef) # lasso outputları güzel değil
    #print(elastic_coef) # elasticte bişiler var
@@ -73,7 +73,7 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
    matElastic <- matrix(0, length(ux), ncol(xdata)-1)
    for (prodIDIndex in 1:length(ux))
    {
-
+      print(prodIDIndex)
       prod_x <- filter(xdata, product_id == ux[prodIDIndex])[, -1] ## product x data
       prod_y <- filter(ydata, product_id == ux[prodIDIndex])[, -1] ## product y data
       df = cbind(prod_y, prod_x)
@@ -131,9 +131,9 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 numofSample=as.character(args[1])
-inputy <- c("featureCreation/new", numofSample,"Y.csv")
+inputy <- c("featureCreation/new100Y.csv")
 inputy2 <- paste(inputy, collapse="")
-inputx <- c("featureCreation/new", numofSample,".csv")
+inputx <- c("featureCreation/new100.csv")
 inputx2 <- paste(inputx, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)

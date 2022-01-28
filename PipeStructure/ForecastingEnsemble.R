@@ -79,12 +79,6 @@ writeCSV <- function (final_data,numofSample){
 }
 
 #finding the indexes of the first n max elements
-whichpart <- function(x, n) {
-  nx <- length(x)
-  p <- nx-n
-  xp <- sort(x, partial=p)[p]
-  which(x > xp)
-}
 
 is.rankdeficient <- function(xregg) {
   constant_columns <- apply(xregg, 2, is.constant)
@@ -94,7 +88,6 @@ is.rankdeficient <- function(xregg) {
   sv <- svd(na.omit(cbind(rep(1, NROW(xregg)), xregg)))$d
   min(sv)/sum(sv) < .Machine$double.eps
 }
-
 
 
 results <- NULL
