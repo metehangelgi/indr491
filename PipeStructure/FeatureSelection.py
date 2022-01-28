@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 import subprocess
 
-
+#activate the ElaticNet.R file to do ElasticNet regression
 def FeatureSelection(numberOfSample,rScript):
     folder = "featureSelection"
     DatabaseManage.createFolder(folder)

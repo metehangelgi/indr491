@@ -55,14 +55,6 @@ ElasticNet <- function (prod_y_train, prod_y_test, prod_x_train, prod_x_test){
    #plot(list.of.fits[["alpha0.2"]])
 
    elastic_coef <-  coef(list.of.fits[["alpha0.6"]],s = list.of.fits[["alpha0.9"]]$lambda.min)
-   #lasso_coef <- coef(glmfit, s = glmfit$lambda.1se)
-   #print(lasso_coef) # lasso outputları güzel değil
-   #print(elastic_coef) # elasticte bişiler var
-
-   # Bana bir ürün için LassoColumnValues olan bi vector döndür
-   #numCols <- ncol(prod_x_train)
-   #LassoColumnValues <- rep(NA, numCols) # NA yerine lasso feature değerleri gibi
-   #newList <- list("Lasso" = lasso_coef, "Elastic" = elastic_coef)
    return(elastic_coef)
 }
 
@@ -86,21 +78,8 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
       h <- nrow(prod_x) - nrow(prod_x_train)
       prod_x_test <- tail(prod_x, h)
 
-      #newListOutputs<-Lasso(prod_y_train,prod_y_test,prod_x_train,prod_x_test)
-
-      #lassoProd <-newListOutputs$Lasso
-      #lassoProd <-lassoProd[-1] #no idea first column?
-      #elasticProd<-newListOutputs$Elastic
-      #print(prod_y_train$sales)
       elasticProd<-ElasticNet(prod_y_train, prod_y_test, prod_x_train, prod_x_test)
       elasticProd<-elasticProd[-1] #no idea first column?
-
-      #for (i in 1:(ncol(xdata)-1)){
-      #   if (lassoProd[i]!=0){
-      #      lassoProd[i]<-1
-      #   }
-      #   mat[[prodIDIndex,i]]<-lassoProd[i]
-      #}
 
       for (i in 1:(ncol(xdata)-1)){
          if (elasticProd[i]!=0){
@@ -131,15 +110,12 @@ FeatureSelection <- function(xdata,ydata,prodIDs) {
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 numofSample=as.character(args[1])
-inputy <- c("featureCreation/new100Y.csv")
+inputy <- c("featureCreation/new",numofSample,"Y.csv")
 inputy2 <- paste(inputy, collapse="")
-inputx <- c("featureCreation/new100.csv")
+inputx <- c("featureCreation/new",numofSample,".csv")
 inputx2 <- paste(inputx, collapse="")
 ydata <- read_csv(inputy2)
 xdata <- read_csv(inputx2)
-#pid <- read_csv("featureCreation/new10PID.csv")
-#xdata <- data.frame(xdataPre)
-#ydata <- data.frame(ydataPre)
 
 # exclude brandid,gender,size
 patterns <- c("size_.*","gender_.*")
@@ -148,9 +124,6 @@ resultX = colnames(xdata)[! any_matching]
 drop <- resultX
 xdata=xdata[,(names(xdata) %in% drop)]
 prodIDs=xdata[['product_id']]
-#SelectionOutputs=FeatureSelection(xdata,ydata,prodIDs)
-#LassoOutput<-SelectionOutputs$Lasso
-#ElasticOutput<-SelectionOutputs$Elastic
 ElasticOutput=FeatureSelection(xdata,ydata,prodIDs)
 
 #output <- c("featureSelection/new", numofSample,".csv")

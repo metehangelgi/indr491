@@ -2,15 +2,18 @@ import pickle
 import pandas as pd
 import os
 
+#Unpickle the data which is located in a pickle file
 def readInitialData(datafile):
     datafileImport="data/"+datafile
     infile = open(datafileImport, 'rb')
     new_dict = pickle.load(infile)
     return new_dict
 
+#Read the data from the desired csv file
 def readData(path,datafile):
     return pd.read_csv('./'+path+'/'+datafile+".csv", encoding='utf-8')
 
+#Merge all pickled files into a single dictionary data structure to ease of work
 def initializing():
     salesData = "TY_Koc_Sales.pkl"
     basket = "TY_Koc_Basket.pkl"
@@ -44,6 +47,7 @@ def initializing():
 
     return datas
 
+#For creating folder and putting corresponding csv file in it
 def createFolder(folder):
     # Directory
     if not os.path.isdir(folder):

@@ -11,24 +11,30 @@ import DatabaseManage
 import FeatureCreation
 import FeatureSelection
 
-
+#Number of sample, csv file to be written and the path for Rscript.exe file should be specified here
 numberOfSample=100
 toCSVFile="new"
 rScript = "C:/Program Files/R/R-4.1.2/bin/x64/Rscript.exe"
+
+#Main for every process to be run
 def main():
     print("PREPROCESS")
     data= HandleProcess([],numberOfSample, toCSVFile,'preProcess',rScript)
-    print("FEARTURE CREATION")
+    print("FEATURE CREATION")
     laggedData = HandleProcess(data,numberOfSample, toCSVFile,'featureCreation',rScript)
     print("DATA CATEGORIZATION")
     HandleProcess(data, numberOfSample, toCSVFile, 'dataCategorization', rScript)
-    print("FEARTURE SELECTION")
+    print("FEATURE SELECTION")
     HandleProcess(data, numberOfSample, toCSVFile, 'featureSelection',rScript)
+
+    #FROM HERE FORECASTING MODELS SHOULD BE RUN WITH RSTUDIO
+    #SINCE INTEGRATION BETWEEN R AND PYTHON HASN'T DONE PROPERLY YET
+
     #HandleProcess(data, numberOfSample, toCSVFile, 'clustering', rScript)
-    print("FORECAST")
+    #print("SINGULAR FORECAST")
     #HandleProcess(data, numberOfSample, toCSVFile, 'forecast',rScript)
-    print("ENSEMBLE FORECAST")
-    HandleProcess(data, numberOfSample, toCSVFile, 'forecast2', rScript)
+    #print("ENSEMBLE FORECAST")
+    #HandleProcess(data, numberOfSample, toCSVFile, 'forecast2', rScript)
 
 
 def HandleProcess(data,numberOfSample,toCSVFile,process,rScript):

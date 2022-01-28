@@ -18,7 +18,7 @@ import re
 
 
 
-
+#lag the specified features and put to the columns of their lagged versions
 def lagData(data,dateData,max_lag=30):
     prodDatas = []
     prodDataSales=[]
@@ -70,7 +70,7 @@ def lagData(data,dateData,max_lag=30):
             prodIDCols = pd.concat([prodIDCols,prodIDCol],ignore_index=True)
     return prodDatas,prodDataSales,prodIDCols
 
-
+#create new features specified in the specialDates.csv
 def featureCreation(datas,numberOfSample, toCSVFile):
     data = datas[
         ["product_id","brand_id","gender","SIZE_NAME","sales", "price", "basket", "fav", "visit", "impression", "quantity", "demand", "removeFromFav",

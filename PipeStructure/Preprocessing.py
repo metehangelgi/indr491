@@ -6,28 +6,34 @@ import DatabaseManage
 import os
 import math
 
+#Method to fill the dates with no sales, basket, fav etc. with zero
 def generalZeroPadding(datasID,date,dataname,rowname):
     if len(datasID[dataname]) != 0 and (date in datasID[dataname]['date'].tolist()):
         return datasID[dataname][datasID[dataname].date == date][rowname].iloc[0]
     else:
         return 0
 
+#The main preprocessing done in here
 def preprocess(numberofSamples,toCSVFile):
     datas=DatabaseManage.initializing()
     dates = sorted(datas["salesData"]["order_date"].unique())
+
     # numberofSamples*50 to make sure there will be enough sample after deleting no price changes, ABC
     productIDs=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']),numberofSamples*50)
-    #datas=datas.iloc[datas['product_id'].isin(datas)]
+
     processedData,processedData2=doProcess(datas,dates,numberofSamples*10,productIDs)
     saveCSV(toCSVFile+str(numberofSamples),processedData,processedData2)
     Sample.getASample(toCSVFile, numberofSamples)
     return DatabaseManage.readData('preProcess',toCSVFile+str(numberofSamples))
 
-
+#The main part of the preprocessing (details are commented in the method)
 def doProcess(datas,dates,numberofSamples,productIDs):
-    MinNumSales=20
+    #Constraining the products with respect to number of sales
+    MinNumSales=15
+    #Empty lists to write preprocessed products to csv files
     Overall = []
     Overall2 = []
+    #put column names to lists
     ColumnNames = np.loadtxt("ColumnNames.txt",dtype='str')
     Overall.append(ColumnNames) # give column names to the array
     Overall2.append(ColumnNames)  # give column names to the array
@@ -37,6 +43,7 @@ def doProcess(datas,dates,numberofSamples,productIDs):
     while True:
         priceAssigned=0
         Lessthan15 = False
+        #check number of products are matching with desired sample size
         if iter==numberofSamples: # number of productID
             break
 
@@ -44,9 +51,12 @@ def doProcess(datas,dates,numberofSamples,productIDs):
             productID=productIDs.pop(0)
         else:
             productID=Sample.getProdID(datas["salesData"].sort_values(by=['order_date']), 1)[0]
+
+        #if randomly sampled product is included before or not
         if productID in savedproductIDs or productID in savedproductIDs2:
             continue
 
+        #dummy dictionary to make modification on the data (to ensure we dont modify the original dictionary)
         datasID = {"salesData": [],
                    "basket": [],
                    "fav": [],
@@ -64,7 +74,7 @@ def doProcess(datas,dates,numberofSamples,productIDs):
         for key in keys:
             datasID[key] = datas[key][datas[key].product_id == productID]
 
-
+        #if the price becomes 0 then don't include that product
         if len(datasID["price"]) == 0: # if has no price value
             continue  # discard given productID
         if 0 in datasID["price"]:
@@ -72,7 +82,7 @@ def doProcess(datas,dates,numberofSamples,productIDs):
 
         OverallProd = []
 
-
+        #check for every day and do proper operation on that day (zero padding or elongation)
         for date in dates:
             rowArr = [productID]
             rowArr.append(date)
@@ -184,6 +194,7 @@ def doProcess(datas,dates,numberofSamples,productIDs):
 
     return Overall,Overall2
 
+#write correspnding csv
 def saveCSV(fName,Overall,Overall2):
     folder="preProcess"
     DatabaseManage.createFolder(folder)
