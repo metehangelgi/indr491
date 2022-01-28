@@ -1,3 +1,1 @@
-# indr491
-
-Deneme
+# Koç University Graduation Project: Forecasting at Trendyol
