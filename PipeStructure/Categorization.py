@@ -4,7 +4,8 @@ import subprocess
 import DatabaseManage
 import pandas as pd
 
-
+#make categorization according to the specified categorization type
+#defaultly categorization for SBC is prefered
 def dataCategorization(data,toCSVFile,categorization,numberOfSample,rScript):
     folder = "dataCategorization"
     DatabaseManage.createFolder(folder)
@@ -58,6 +59,7 @@ def abc(data,toCSVFile,numberOfSample):
     saveCSV(toCSVFile+str(numberOfSample)+"ABC",ABCoutputDF)
     return ABCoutputDF
 
+#SBC categorization
 def sbc(numberOfSample,rScript):
     # subprocess.call (["/usr/bin/Rscript", "--vanilla", "lasso.r"])
     subprocess.call([rScript, "--vanilla", "sbc.r", str(numberOfSample)])
@@ -66,6 +68,7 @@ def sbc(numberOfSample,rScript):
 def slow_fast_moving(data):
     pass
 
+#if multiple categorization is done to the data, this method assigns these categorical labels to products
 def combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample):
     categorizations=[]
     for categorizationType in categorizationTypes:
@@ -75,7 +78,7 @@ def combineCategorization(categorizationTypes,process, toCSVFile,numberOfSample)
         InitialCat=InitialCat.join(categorization.set_index('product_id'), on='product_id')
     saveCSV(toCSVFile + str(numberOfSample) + "Combined", InitialCat)
 
-
+#writing categories to csv file
 def saveCSV(fName,Overall):
     folder="dataCategorization"
     DatabaseManage.createFolder(folder)
